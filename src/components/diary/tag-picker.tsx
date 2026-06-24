@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import type { Tag } from "@/types";
 
 interface Props {
@@ -13,7 +14,8 @@ export default function TagPicker({ tags, textareaRef, onInsert }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [idx, setIdx] = useState(0);
-  const [pt, setPt] = useState({ x: 0, y: 0 });
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [mode, setMode] = useState<"hash" | "time">("hash");
   const listRef = useRef<HTMLDivElement>(null);
 
   const filtered = tags.filter((t) => t.name.toLowerCase().includes(query.toLowerCase()));
@@ -22,32 +24,50 @@ export default function TagPicker({ tags, textareaRef, onInsert }: Props) {
   const check = useCallback(() => {
     const el = textareaRef.current;
     if (!el) return;
-    const pos = el.selectionStart;
-    const before = el.value.substring(0, pos);
+    const cursorPos = el.selectionStart;
+    const before = el.value.substring(0, cursorPos);
+
+    // A: # 触发 → 弹框在 # 处
     const hash = before.lastIndexOf("#");
-    if (hash === -1) { setOpen(false); return; }
-    const after = before.substring(hash + 1);
-    if (after.includes(" ") || after.includes("\n")) { setOpen(false); return; }
+    if (hash !== -1) {
+      const after = before.substring(hash + 1);
+      if (!after.includes(" ") && !after.includes("\n")) {
+        setQuery(after);
+        setMode("hash");
+        setPos(charPos(el, hash));
+        setOpen(true);
+        return;
+      }
+    }
 
-    setQuery(after);
+    // B: 时间词触发 → 弹框在时间词末尾
+    const tm = findLastTimeWord(before);
+    if (tm) {
+      const afterTime = before.substring(tm.end);
+      if (/^\s*#/.test(afterTime)) { setOpen(false); return; }
+      if ((afterTime.length <= 3 && !afterTime.includes("#")) || cursorPos === tm.end) {
+        setQuery("");
+        setMode("time");
+        setPos(charPos(el, tm.end));
+        setOpen(true);
+        return;
+      }
+    }
 
-    // 用 mirror div 计算 # 的屏幕坐标
-    const mt = mirrorGetRect(el, hash);
-    setPt({ x: mt.x, y: mt.y + mt.h + 4 });
-    setOpen(true);
+    setOpen(false);
   }, [textareaRef]);
 
   const select = useCallback((name: string) => {
     const el = textareaRef.current;
     if (!el) return;
-    const pos = el.selectionStart;
-    const before = el.value.substring(0, pos);
-    const after = el.value.substring(pos);
-    const hash = before.lastIndexOf("#");
+    const cursorPos = el.selectionStart;
+    const before = el.value.substring(0, cursorPos);
+    const after = el.value.substring(cursorPos);
     let nv: string, nc: number;
 
-    if (hash !== -1 && !before.substring(hash + 1).includes(" ") && !before.substring(hash + 1).includes("\n")) {
-      const pre = el.value.substring(0, hash);
+    if (mode === "hash") {
+      const hash = before.lastIndexOf("#");
+      const pre = before.substring(0, hash);
       nv = pre + "#" + name + " ";
       nc = nv.length;
       let skip = after.length;
@@ -59,10 +79,11 @@ export default function TagPicker({ tags, textareaRef, onInsert }: Props) {
       nv = before + "#" + name + " " + after;
       nc = before.length + name.length + 2;
     }
+
     onInsert(nv);
     setTimeout(() => { el.focus(); el.setSelectionRange(nc, nc); }, 0);
     setOpen(false);
-  }, [textareaRef, onInsert]);
+  }, [textareaRef, onInsert, mode]);
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -96,11 +117,11 @@ export default function TagPicker({ tags, textareaRef, onInsert }: Props) {
 
   if (!open || filtered.length === 0) return null;
 
-  return (
+  const el = (
     <div
       ref={listRef}
       className="fixed z-[9999] w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1"
-      style={{ left: pt.x, top: pt.y }}
+      style={{ left: pos.x, top: pos.y }}
     >
       {filtered.map((t, i) => (
         <button
@@ -115,47 +136,68 @@ export default function TagPicker({ tags, textareaRef, onInsert }: Props) {
       ))}
     </div>
   );
+
+  return createPortal(el, document.body);
 }
 
-// === 精确计算 textarea 中某个字符位置的屏幕坐标 ===
-function mirrorGetRect(el: HTMLTextAreaElement, pos: number): { x: number; y: number; h: number } {
-  const style = getComputedStyle(el);
-  // 用 span 的方法：创建 mirror，前 pos 个字符 + marker span
+// === 计算 textarea 中某个字符位置的屏幕坐标（视口坐标，供 fixed 用） ===
+function charPos(el: HTMLTextAreaElement, charAt: number): { x: number; y: number } {
+  const s = getComputedStyle(el);
+  const er = el.getBoundingClientRect();
+
+  // 构建 mirror 元素，复制 textarea 样式 + 内容
   const mirror = document.createElement("div");
   mirror.style.position = "fixed";
-  mirror.style.left = "-9999px";
-  mirror.style.top = "0";
+  mirror.style.left = `${er.left}px`;
+  mirror.style.top = `${er.top}px`;
+  mirror.style.width = `${el.clientWidth}px`;
+  mirror.style.height = "auto";
+  mirror.style.font = s.font;
+  mirror.style.fontSize = s.fontSize;
+  mirror.style.fontFamily = s.fontFamily;
+  mirror.style.fontWeight = s.fontWeight;
+  mirror.style.lineHeight = s.lineHeight;
+  mirror.style.letterSpacing = s.letterSpacing;
+  mirror.style.wordSpacing = s.wordSpacing;
   mirror.style.whiteSpace = "pre-wrap";
   mirror.style.overflowWrap = "break-word";
-  mirror.style.font = style.font;
-  mirror.style.fontSize = style.fontSize;
-  mirror.style.fontFamily = style.fontFamily;
-  mirror.style.fontWeight = style.fontWeight;
-  mirror.style.lineHeight = style.lineHeight;
-  mirror.style.letterSpacing = style.letterSpacing;
-  mirror.style.wordSpacing = style.wordSpacing;
-  mirror.style.textTransform = style.textTransform;
-  mirror.style.width = el.clientWidth + "px";
-  mirror.style.padding = style.padding;
-  mirror.style.paddingLeft = style.paddingLeft;
-  mirror.style.paddingTop = style.paddingTop;
-  mirror.style.paddingRight = style.paddingRight;
-  mirror.style.paddingBottom = style.paddingBottom;
-  mirror.style.border = style.border;
-  mirror.style.borderLeftWidth = style.borderLeftWidth;
-  mirror.style.borderTopWidth = style.borderTopWidth;
-  mirror.style.boxSizing = style.boxSizing;
+  mirror.style.padding = s.padding;
+  mirror.style.paddingLeft = s.paddingLeft;
+  mirror.style.paddingTop = s.paddingTop;
+  mirror.style.paddingRight = s.paddingRight;
+  mirror.style.paddingBottom = s.paddingBottom;
+  mirror.style.border = s.border;
+  mirror.style.borderLeftWidth = s.borderLeftWidth;
+  mirror.style.borderTopWidth = s.borderTopWidth;
+  mirror.style.boxSizing = s.boxSizing;
 
-  // 前 pos 个字符 + marker
+  // 前 charAt 个字符 + 标记 span
   const text = el.value;
-  mirror.textContent = text.substring(0, pos);
-  const marker = document.createElement("span");
-  marker.textContent = text.charAt(pos) || ".";
-  mirror.appendChild(marker);
+  mirror.textContent = text.substring(0, charAt);
+  const mark = document.createElement("span");
+  mark.textContent = text.charAt(charAt) || ".";
+  mirror.appendChild(mark);
 
   document.body.appendChild(mirror);
-  const mr = marker.getBoundingClientRect();
+  const mk = mark.getBoundingClientRect();
   document.body.removeChild(mirror);
 
-  return { x: mr.left, y: mr.top, h: mr.height };
+  const lh = parseFloat(s.lineHeight) || parseFloat(s.fontSize) * 1.4 || 20;
+
+  // 返回视口坐标：text随 scroll 偏移，tag 框出现在字符下方
+  return {
+    x: mk.left,
+    y: mk.top + lh + 4,
+  };
+}
+
+// === 查找光标前最近的时间词 ===
+function findLastTimeWord(text: string): { start: number; end: number } | null {
+  const re = /(早上|上午|中午|下午|傍晚|晚上|凌晨|夜里|早晨)?\s*(\d{1,2})\s*[点:：]\s*(\d{0,2})\s*(?:分|半)?/g;
+  const ms = [...text.matchAll(re)];
+  if (!ms.length) return null;
+  const last = ms[ms.length - 1];
+  const end = (last.index ?? 0) + last[0].length;
+  if (text.length - end > 5) return null;
+  return { start: last.index ?? 0, end };
 }
