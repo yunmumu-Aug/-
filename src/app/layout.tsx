@@ -26,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN" className="h-full antialiased">
-      <body className="min-h-full bg-white">
+      <body className="min-h-full bg-white overflow-x-hidden">
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

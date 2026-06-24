@@ -62,7 +62,8 @@ export default function TagPicker({ tags, textareaRef, onInsert }: Props) {
   const filtered = tags.filter((t) => t.name.toLowerCase().includes(query.toLowerCase()));
   useEffect(() => setIdx(0), [query]);
 
-  // 核心：input 事件处理
+  // 核心：input + compositionend 事件处理
+  // compositionend 处理中文输入法（IME）提交文字的情况
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -107,7 +108,11 @@ export default function TagPicker({ tags, textareaRef, onInsert }: Props) {
     }
 
     el.addEventListener("input", handler);
-    return () => el.removeEventListener("input", handler);
+    el.addEventListener("compositionend", handler);
+    return () => {
+      el.removeEventListener("input", handler);
+      el.removeEventListener("compositionend", handler);
+    };
   }, [textareaRef]);
 
   // 选中
