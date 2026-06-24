@@ -23,13 +23,13 @@ export interface Tag {
 export interface Diary {
   id: string;
   user_id: string;
-  date: string; // YYYY-MM-DD
-  content: string; // 可能是密文（加密后）
-  wake_time: string | null; // YYYY-MM-DDTHH:MM (datetime-local)
-  sleep_time: string | null; // YYYY-MM-DDTHH:MM (datetime-local)
+  date: string;
+  content: string;        // 密文（加密后）或明文
+  content_iv?: string;    // AES-GCM IV（加密时存在）
+  wake_time: string | null;
+  sleep_time: string | null;
   created_at: string;
   updated_at: string;
-  // 关联数据（前端组装）
   tags?: DiaryTagRelation[];
 }
 

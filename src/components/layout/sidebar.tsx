@@ -1,7 +1,8 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/hooks/use-auth";
 
 type NavItem = {
   label: string;
@@ -66,6 +67,7 @@ function NavIcon({ type, active }: { type: string; active: boolean }) {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { user, signOut } = useAuth();
 
   return (
     <aside className="hidden md:flex md:flex-col md:w-55 md:fixed md:inset-y-0 md:border-r md:border-[var(--border)] md:bg-white md:z-10">
@@ -102,8 +104,16 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-5 py-4 border-t border-[var(--border)]">
-        <p className="text-xs text-[var(--text-muted)]">时光轴 v0.1.0</p>
+      <div className="px-5 py-4 border-t border-[var(--border)] space-y-2">
+        {user && (
+          <button
+            onClick={signOut}
+            className="w-full text-left text-xs text-[var(--text-muted)] hover:text-red-500 transition-colors"
+          >
+            🚪 退出登录
+          </button>
+        )}
+        <p className="text-xs text-[var(--text-muted)]">时光轴 v0.2.0</p>
       </div>
     </aside>
   );

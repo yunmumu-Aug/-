@@ -3,6 +3,8 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/lib/supabase";
+import { decrypt } from "@/lib/crypto";
 import {
   format as formatDateFn,
   startOfMonth,
@@ -21,7 +23,7 @@ import { zhCN } from "date-fns/locale";
 import type { Diary } from "@/types";
 
 export default function CalendarPage() {
-  const { user, session, loading: authLoading } = useAuth();
+  const { user, getEncKey, loading: authLoading } = useAuth();
   const router = useRouter();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -37,19 +39,31 @@ export default function CalendarPage() {
 
   // 获取用户当月日记
   const fetchMonthDiaries = useCallback(async () => {
-    if (!session?.access_token) return;
+    if (!user?.id) return;
     setLoading(true);
 
     const start = formatDateFn(startOfMonth(currentMonth), "yyyy-MM-dd");
     const end = formatDateFn(endOfMonth(currentMonth), "yyyy-MM-dd");
 
     try {
-      const res = await fetch(
-        `/api/diaries?start=${start}&end=${end}`,
-        { headers: { Authorization: `Bearer ${session.access_token}` } }
-      );
-      const json = await res.json();
-      const list: Diary[] = json.data || [];
+      const { data } = await supabase
+        .from("diaries")
+        .select("*, tags:diary_tags(id, tag_id, time_label, position, tag:tags(id, name, color))")
+        .eq("user_id", user.id)
+        .gte("date", start)
+        .lte("date", end)
+        .order("date", { ascending: true });
+
+      const list: Diary[] = data || [];
+
+      // 解密
+      const key = await getEncKey();
+      for (const d of list) {
+        if (d.content_iv && d.content && key) {
+          d.content = await decrypt(d.content, d.content_iv, key);
+        }
+      }
+
       const map = new Map<string, Diary>();
       list.forEach((d) => map.set(d.date, d));
       setDiaryDates(map);
@@ -57,7 +71,7 @@ export default function CalendarPage() {
       console.error("Failed to load month diaries", e);
     }
     setLoading(false);
-  }, [currentMonth, session?.access_token]);
+  }, [currentMonth, user?.id, getEncKey]);
 
   useEffect(() => {
     fetchMonthDiaries();
