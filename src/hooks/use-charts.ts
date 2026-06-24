@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "./use-auth";
+import { supabase } from "@/lib/supabase";
 import type { Diary, TagStat, SummaryCard } from "@/types";
-import { aggregateTagStats, generateSummary, generateHeatmapData } from "@/lib/chart-utils";
+import { aggregateTagStats, generateSummary } from "@/lib/chart-utils";
 import { calcSleepDuration } from "@/lib/diary-utils";
 
 interface ChartData {
@@ -27,39 +28,30 @@ export function useChartData(start: string, end: string): ChartData {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!session?.access_token || !start || !end) {
-      setLoading(false);
-      return;
-    }
-
+    if (!session?.user?.id) { setLoading(false); return; }
     let cancelled = false;
     setLoading(true);
-
-    fetch(`/api/diaries?start=${start}&end=${end}`, {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    })
-      .then((r) => r.json())
-      .then((json) => {
+    supabase
+      .from("diaries")
+      .select("*, tags:diary_tags(id, tag_id, time_label, position, tag:tags(id, name, color))")
+      .eq("user_id", session.user.id)
+      .gte("date", start)
+      .lte("date", end)
+      .order("date", { ascending: true })
+      .then(({ data, error }) => {
         if (cancelled) return;
-        const list: Diary[] = Array.isArray(json.data) ? json.data : (json.data ? [json.data] : []);
-        setDiaries(list);
+        if (error) { console.error(error); setDiaries([]); }
+        else setDiaries(data || []);
         setLoading(false);
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
       });
-
     return () => { cancelled = true; };
-  }, [start, end, session?.access_token]);
+  }, [start, end, session?.user?.id]);
 
   const tagStats = aggregateTagStats(diaries, []);
-  const sleepData: SleepEntry[] = diaries.map((d) => ({
-    date: d.date,
-    wakeTime: d.wake_time,
-    sleepTime: d.sleep_time,
+  const sleepData: SleepEntry[] = diaries.map(d => ({
+    date: d.date, wakeTime: d.wake_time, sleepTime: d.sleep_time,
     durationHours: calcSleepDuration(d.wake_time, d.sleep_time),
   }));
   const summary = diaries.length > 0 ? generateSummary(diaries, tagStats) : null;
-
   return { diaries, tagStats, sleepData, summary, loading };
 }

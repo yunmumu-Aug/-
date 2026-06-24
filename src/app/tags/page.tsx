@@ -20,8 +20,8 @@ const PRESET_TAGS = [
 const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#6366F1"];
 
 export default function TagsPage() {
-  const { user, session, loading: authLoading } = useAuth();
-  const { getTags, createTag, batchImportTags } = useTags();
+  const { user, loading: authLoading } = useAuth();
+  const { getTags, createTag, batchImportTags, updateTag, deleteTag } = useTags();
   const router = useRouter();
 
   const [tags, setTags] = useState<Tag[]>([]);
@@ -102,21 +102,11 @@ export default function TagsPage() {
   async function handleInitPresets() {
     try {
       await batchImportTags(PRESET_TAGS.map((t) => t.name));
-      // 预设标签用默认颜色，需要逐个更新颜色
       const allTags = await getTags();
       for (const preset of PRESET_TAGS) {
         const tag = allTags.find((t: Tag) => t.name === preset.name);
-        if (tag) {
-          try {
-            await fetch("/api/tags", {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${session?.access_token || ""}`,
-              },
-              body: JSON.stringify({ id: tag.id, color: preset.color }),
-            });
-          } catch {}
+        if (tag && tag.color !== preset.color) {
+          try { await updateTag(tag.id, { color: preset.color }); } catch {}
         }
       }
       setMessage("✅ 预设标签初始化完成");
@@ -131,14 +121,7 @@ export default function TagsPage() {
   async function handleDelete(tagId: string) {
     setDeleting(tagId);
     try {
-      const res = await fetch(`/api/tags?id=${tagId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
-      });
-      if (!res.ok) {
-        const json = await res.json();
-        throw new Error(json.error || "删除失败");
-      }
+      await deleteTag(tagId);
       setTags((prev) => prev.filter((t) => t.id !== tagId));
       setMessage("✅ 标签已删除");
     } catch (e: any) {

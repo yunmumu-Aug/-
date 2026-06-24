@@ -2,123 +2,171 @@
 
 import { useState, useCallback } from "react";
 import { useAuth } from "./use-auth";
+import { supabase } from "@/lib/supabase";
 import type { Diary, Tag } from "@/types";
 
-/**
- * 日记相关数据操作 hook
- */
 export function useDiary() {
   const { session } = useAuth();
   const [saving, setSaving] = useState(false);
 
-  const getAuthHeaders = useCallback(() => {
-    return {
-      Authorization: `Bearer ${session?.access_token || ""}`,
-      "Content-Type": "application/json",
-    };
-  }, [session?.access_token]);
-
   // 获取某天日记
   const getDiary = useCallback(async (date: string): Promise<Diary | null> => {
-    if (!session?.access_token) return null;
-    const res = await fetch(`/api/diaries?date=${date}`, {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
-    const json = await res.json();
-    return json.data || null;
-  }, [session?.access_token]);
+    if (!session?.user?.id) return null;
+    const { data, error, status } = await supabase
+      .from("diaries")
+      .select("*, tags:diary_tags(id, tag_id, time_label, position, tag:tags(id, name, color))")
+      .eq("user_id", session.user.id)
+      .eq("date", date)
+      .maybeSingle();
+    if (error && status !== 406) {
+      console.error("getDiary error:", error);
+      return null;
+    }
+    return data || null;
+  }, [session?.user?.id]);
 
   // 获取日期范围的日记
   const getDiaries = useCallback(async (start: string, end: string): Promise<Diary[]> => {
-    if (!session?.access_token) return [];
-    const res = await fetch(`/api/diaries?start=${start}&end=${end}`, {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
-    const json = await res.json();
-    return json.data || [];
-  }, [session?.access_token]);
+    if (!session?.user?.id) return [];
+    const { data, error } = await supabase
+      .from("diaries")
+      .select("*, tags:diary_tags(id, tag_id, time_label, position, tag:tags(id, name, color))")
+      .eq("user_id", session.user.id)
+      .gte("date", start)
+      .lte("date", end)
+      .order("date", { ascending: true });
+    if (error) {
+      console.error("getDiaries error:", error);
+      return [];
+    }
+    return data || [];
+  }, [session?.user?.id]);
 
   // 保存日记
-  const saveDiary = useCallback(async (data: {
+  const saveDiary = useCallback(async (params: {
     date: string;
     content: string;
     wakeTime: string;
     sleepTime: string;
     tags: Array<{ tagId: string; timeLabel: string | null }>;
   }): Promise<Diary | null> => {
-    if (!session?.access_token) return null;
+    if (!session?.user?.id) return null;
     setSaving(true);
     try {
-      const res = await fetch("/api/diaries", {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify(data),
-      });
-      const json = await res.json();
-      if (json.error) throw new Error(json.error);
-      return json.data;
+      // Upsert diary
+      const { data: diary, error: diaryError } = await supabase
+        .from("diaries")
+        .upsert({
+          user_id: session.user.id,
+          date: params.date,
+          content: params.content || "",
+          wake_time: params.wakeTime || null,
+          sleep_time: params.sleepTime || null,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id,date" })
+        .select()
+        .single();
+
+      if (diaryError) throw diaryError;
+
+      // Replace tags
+      if (params.tags) {
+        await supabase.from("diary_tags").delete().eq("diary_id", diary.id);
+        if (params.tags.length > 0) {
+          const rows = params.tags.map((t, idx) => ({
+            diary_id: diary.id,
+            tag_id: t.tagId,
+            time_label: t.timeLabel || null,
+            position: idx,
+          }));
+          await supabase.from("diary_tags").insert(rows);
+        }
+      }
+
+      // Return full diary
+      const { data: full } = await supabase
+        .from("diaries")
+        .select("*, tags:diary_tags(id, tag_id, time_label, position, tag:tags(id, name, color))")
+        .eq("id", diary.id)
+        .single();
+      return full;
+    } catch (e: any) {
+      console.error("saveDiary error:", e);
+      throw e;
     } finally {
       setSaving(false);
     }
-  }, [session?.access_token, getAuthHeaders]);
+  }, [session?.user?.id]);
 
   return { getDiary, getDiaries, saveDiary, saving };
 }
 
-/**
- * 标签相关数据操作 hook
- */
 export function useTags() {
   const { session } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  const getAuthHeaders = useCallback(() => {
-    return {
-      Authorization: `Bearer ${session?.access_token || ""}`,
-      "Content-Type": "application/json",
-    };
-  }, [session?.access_token]);
-
   // 获取所有标签
   const getTags = useCallback(async (): Promise<Tag[]> => {
-    if (!session?.access_token) return [];
-    const res = await fetch("/api/tags", {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
-    const json = await res.json();
-    return json.data || [];
-  }, [session?.access_token]);
+    if (!session?.user?.id) return [];
+    const { data, error } = await supabase
+      .from("tags")
+      .select("*")
+      .eq("user_id", session.user.id)
+      .order("name");
+    if (error) {
+      console.error("getTags error:", error);
+      return [];
+    }
+    return data || [];
+  }, [session?.user?.id]);
 
   // 创建标签
   const createTag = useCallback(async (name: string, color?: string): Promise<Tag | null> => {
-    if (!session?.access_token) return null;
-    const res = await fetch("/api/tags", {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ name, color }),
-    });
-    const json = await res.json();
-    if (json.error) throw new Error(json.error);
-    return json.data;
-  }, [session?.access_token, getAuthHeaders]);
+    if (!session?.user?.id) return null;
+    const COLORS = ["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899","#6366F1","#F97316"];
+    const { data, error } = await supabase
+      .from("tags")
+      .insert({
+        user_id: session.user.id,
+        name: name.trim(),
+        color: color || COLORS[Math.floor(Math.random() * COLORS.length)],
+      })
+      .select()
+      .single();
+    if (error) {
+      if (error.code === "23505") throw new Error("标签已存在");
+      throw error;
+    }
+    return data;
+  }, [session?.user?.id]);
 
   // 批量导入标签
   const batchImportTags = useCallback(async (names: string[]): Promise<Tag[]> => {
-    if (!session?.access_token) return [];
+    if (!session?.user?.id) return [];
     setLoading(true);
     try {
-      const res = await fetch("/api/tags/batch", {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ names }),
-      });
-      const json = await res.json();
-      if (json.error) throw new Error(json.error);
-      return json.data || [];
+      const unique = [...new Set(names.map(n => n.trim()).filter(Boolean))];
+      if (unique.length === 0) return [];
+      const rows = unique.map(n => ({ user_id: session.user.id!, name: n, color: "#3B82F6" }));
+      await supabase.from("tags").upsert(rows, { onConflict: "user_id,name", ignoreDuplicates: true });
+      return getTags();
     } finally {
       setLoading(false);
     }
-  }, [session?.access_token, getAuthHeaders]);
+  }, [session?.user?.id, getTags]);
 
-  return { getTags, createTag, batchImportTags, loading };
+  // 更新标签
+  const updateTag = useCallback(async (id: string, updates: { name?: string; color?: string }) => {
+    if (!session?.user?.id) return;
+    await supabase.from("tags").update(updates).eq("id", id).eq("user_id", session.user.id);
+  }, [session?.user?.id]);
+
+  // 删除标签
+  const deleteTag = useCallback(async (id: string) => {
+    if (!session?.user?.id) return;
+    await supabase.from("diary_tags").delete().eq("tag_id", id);
+    await supabase.from("tags").delete().eq("id", id).eq("user_id", session.user.id);
+  }, [session?.user?.id]);
+
+  return { getTags, createTag, batchImportTags, updateTag, deleteTag, loading };
 }
