@@ -19,71 +19,71 @@ export default function TagPicker({ tags, textareaRef, onInsert }: Props) {
   const filtered = tags.filter((t) =>
     t.name.toLowerCase().includes(query.toLowerCase())
   );
-
   useEffect(() => setSelectedIdx(0), [query]);
 
-  // 接收来自 textarea 的触发：用户输入了 #
-  const triggerOpen = useCallback(() => {
+  // 检查光标前文本，判断是否触发
+  function checkTrigger() {
     const el = textareaRef.current;
     if (!el) return;
 
     const pos = el.selectionStart;
     const textBefore = el.value.substring(0, pos);
-    const hashIdx = textBefore.lastIndexOf("#");
+    const lastChar = textBefore.slice(-1);
 
-    // # 后面不能有空格或换行
-    const afterHash = textBefore.substring(hashIdx + 1);
-    if (afterHash.includes(" ") || afterHash.includes("\n")) {
-      setOpen(false);
-      return;
+    // 方式 A：输入 # → 弹出
+    const hashIdx = textBefore.lastIndexOf("#");
+    if (hashIdx !== -1) {
+      const afterHash = textBefore.substring(hashIdx + 1);
+      if (!afterHash.includes(" ") && !afterHash.includes("\n")) {
+        setQuery(afterHash);
+        showAtPos(el, hashIdx);
+        return;
+      }
     }
 
-    setQuery(afterHash);
+    // 方式 B：最近打了时间词，后面还没跟 #标签 → 也弹出
+    const timeMatch = findLastTimeWord(textBefore);
+    if (timeMatch) {
+      const { start, end } = timeMatch;
+      // 时间词后必须是：空格、逗号、或直接是光标（不能已经跟了 #）
+      const afterTime = textBefore.substring(end);
+      // 已经跟了 #标签 → 不弹（让方式 A 处理）
+      if (/^\s*#/.test(afterTime)) {
+        setOpen(false);
+        return;
+      }
+      // 时间词后面允许有少量空格，不超过 3 个字符
+      if (afterTime.length <= 3 && !afterTime.includes("#")) {
+        setQuery("");
+        showAtPos(el, Math.min(end, pos));
+        return;
+      }
+      if (pos === end && lastChar !== "#") {
+        setQuery("");
+        showAtPos(el, end);
+        return;
+      }
+    }
 
-    // 计算浮动位置：基于 # 符号在 textarea 中的像素坐标
-    const { x, y, height } = getTextareaCoordForPos(el, hashIdx);
-    // 下拉框画在 textarea 视口之内，加 24px 的向下偏移
+    setOpen(false);
+  }
+
+  function showAtPos(el: HTMLTextAreaElement, charPos: number) {
+    const { x, y, height } = getTextareaCoordForPos(el, charPos);
     const rect = el.getBoundingClientRect();
     setCoords({
-      x: Math.min(x, rect.right - 200),   // 不超出右边
-      y: y + height + 2,                   // 紧贴光标下方
+      x: Math.min(x, rect.right - 210),
+      y: y + height + 2,
     });
     setOpen(true);
-  }, [textareaRef]);
+  }
 
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
-
-    function onInput() {
-      const pos = el!.selectionStart;
-      const textBefore = el!.value.substring(0, pos);
-      const hashIdx = textBefore.lastIndexOf("#");
-      if (hashIdx === -1 || hashIdx === pos - 1) {
-        // 刚输入 #，或者后面有内容，触发
-        if (hashIdx !== -1) {
-          const after = textBefore.substring(hashIdx + 1);
-          if (!after.includes(" ") && !after.includes("\n")) {
-            triggerOpen();
-            return;
-          }
-        }
-        setOpen(false);
-        return;
-      }
-      // 正在输入标签名，刷新过滤
-      const after = textBefore.substring(hashIdx + 1);
-      if (!after.includes(" ") && !after.includes("\n")) {
-        setQuery(after);
-        setOpen(true);
-      } else {
-        setOpen(false);
-      }
-    }
-
-    el.addEventListener("input", onInput);
-    return () => el.removeEventListener("input", onInput);
-  }, [triggerOpen, textareaRef]);
+    el.addEventListener("input", checkTrigger);
+    return () => el.removeEventListener("input", checkTrigger);
+  }, []); // eslint-disable-line
 
   // 选中标签
   const selectTag = useCallback(
@@ -94,19 +94,36 @@ export default function TagPicker({ tags, textareaRef, onInsert }: Props) {
       const pos = el.selectionStart;
       const textBefore = el.value.substring(0, pos);
       const textAfter = el.value.substring(pos);
+
+      let newValue: string;
+      let newCursor: number;
+
+      // 检查是否有 # 触发器
       const hashIdx = textBefore.lastIndexOf("#");
-      const before = el.value.substring(0, hashIdx);
-      const replaced = before + `#${tagName} `;
-      const newCursor = replaced.length;
+      if (hashIdx !== -1) {
+        const after = textBefore.substring(hashIdx + 1);
+        if (!after.includes(" ") && !after.includes("\n")) {
+          // 方式 A：替换 # 开始的半截
+          const before = el.value.substring(0, hashIdx);
+          const replaced = before + `#${tagName} `;
+          newCursor = replaced.length;
+          let skip = textAfter.length;
+          const sp = textAfter.indexOf(" "), nl = textAfter.indexOf("\n");
+          if (sp !== -1) skip = sp;
+          if (nl !== -1) skip = Math.min(skip, nl);
+          newValue = replaced + textAfter.substring(skip);
+        } else {
+          // 方式 B：光标处插入
+          newValue = textBefore + `#${tagName} ` + textAfter;
+          newCursor = textBefore.length + tagName.length + 2;
+        }
+      } else {
+        // 方式 B：光标处插入 #标签
+        newValue = textBefore + `#${tagName} ` + textAfter;
+        newCursor = textBefore.length + tagName.length + 2;
+      }
 
-      // 跳过标签名后面已输入的半截字符
-      let skip = textAfter.length;
-      const sp = textAfter.indexOf(" ");
-      const nl = textAfter.indexOf("\n");
-      if (sp !== -1) skip = sp;
-      if (nl !== -1) skip = Math.min(skip, nl);
-
-      onInsert(replaced + textAfter.substring(skip));
+      onInsert(newValue);
       setTimeout(() => {
         el.setSelectionRange(newCursor, newCursor);
         el.focus();
@@ -159,12 +176,15 @@ export default function TagPicker({ tags, textareaRef, onInsert }: Props) {
       className="fixed z-[9999] w-52 bg-white border border-[var(--border)] rounded-xl shadow-lg py-1"
       style={{ left: coords.x, top: coords.y }}
     >
+      <div className="px-3 py-1 text-[10px] text-[var(--text-muted)]">
+        ↑↓选择 Enter确认 Esc关闭
+      </div>
       {filtered.map((tag, idx) => (
         <button
           key={tag.id}
           type="button"
           onMouseDown={(e) => {
-            e.preventDefault(); // 抢在 textarea blur 之前
+            e.preventDefault();
             selectTag(tag.name);
           }}
           className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left
@@ -183,13 +203,29 @@ export default function TagPicker({ tags, textareaRef, onInsert }: Props) {
   );
 }
 
-// === 辅助：计算 textarea 中某个字符位置的像素坐标 ===
+// === 查找光标前最近的时间词 ===
+function findLastTimeWord(text: string): { start: number; end: number } | null {
+  // 从后往前扫描
+  const matches: { start: number; end: number; text: string }[] = [];
+  const regex = /(早上|上午|中午|下午|傍晚|晚上|凌晨|夜里|早晨)?\s*(\d{1,2})\s*[点:：]\s*(\d{0,2})\s*(?:分|半)?/g;
+  let m: RegExpExecArray | null;
+  while ((m = regex.exec(text)) !== null) {
+    matches.push({ start: m.index, end: m.index + m[0].length, text: m[0] });
+  }
+  if (matches.length === 0) return null;
+  // 取最后面（最接近光标）的
+  const last = matches[matches.length - 1];
+  // 时间词不能离光标太远（最多 5 个字符）
+  if (text.length - last.end > 5) return null;
+  return { start: last.start, end: last.end };
+}
+
+// === 辅助：计算 textarea 中字符位置 ===
 function getTextareaCoordForPos(
   el: HTMLTextAreaElement,
   pos: number
 ): { x: number; y: number; height: number } {
   const style = getComputedStyle(el);
-  // 用 mirror div 测量
   const div = document.createElement("div");
   const copy = [
     "fontFamily", "fontSize", "fontWeight", "lineHeight",
@@ -207,23 +243,20 @@ function getTextareaCoordForPos(
   div.style.whiteSpace = "pre-wrap";
   div.style.overflowWrap = "break-word";
 
-  // 前 pos 个字符 + 一个 span 标记位置
   const before = el.value.substring(0, pos);
   const after = el.value.substring(pos) || ".";
   div.textContent = before;
   const mark = document.createElement("span");
   mark.textContent = after;
   div.appendChild(mark);
-
   document.body.appendChild(div);
-  const divRect = div.getBoundingClientRect();
   const markRect = mark.getBoundingClientRect();
   document.body.removeChild(div);
 
   const elRect = el.getBoundingClientRect();
   return {
-    x: elRect.left + (markRect.left - divRect.left),
-    y: elRect.top + (markRect.top - divRect.top) - el.scrollTop,
+    x: elRect.left + (markRect.left - elRect.left),
+    y: elRect.top + (markRect.top - elRect.top) - el.scrollTop,
     height: markRect.height,
   };
 }
