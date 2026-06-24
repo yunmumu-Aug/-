@@ -558,7 +558,7 @@ export default function ChartsPage() {
   const todayDiary = range === "today" ? diaries[0] : null;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 md:py-8">
+    <div className="w-full max-w-full md:max-w-6xl mx-auto px-4 py-6 md:py-8 overflow-x-hidden">
       {/* Header + tabs */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
         <h1 className="text-2xl font-semibold">📊 图表分析</h1>

@@ -176,7 +176,7 @@ export default function Home() {
   if (!user) return null; // 即将跳转
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 md:py-8">
+    <div className="w-full max-w-full md:max-w-3xl mx-auto px-4 py-6 md:py-8 overflow-x-hidden">
       {/* Page header */}
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-[var(--foreground)]">
