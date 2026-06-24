@@ -1,0 +1,22 @@
+import type { Metadata } from "next";
+import "./globals.css";
+import ClientLayout from "@/components/layout/client-layout";
+
+export const metadata: Metadata = {
+  title: "时光轴 - 日记分析",
+  description: "记录生活，看见时间的形状",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="zh-CN" className="h-full antialiased">
+      <body className="min-h-full bg-white">
+        <ClientLayout>{children}</ClientLayout>
+      </body>
+    </html>
+  );
+}
