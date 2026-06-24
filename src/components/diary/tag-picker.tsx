@@ -205,19 +205,16 @@ export default function TagPicker({ tags, textareaRef, onInsert }: Props) {
 
 // === 查找光标前最近的时间词 ===
 function findLastTimeWord(text: string): { start: number; end: number } | null {
-  // 从后往前扫描
-  const matches: { start: number; end: number; text: string }[] = [];
+  // 使用 matchAll 替代 exec+g，避免 lastIndex 残留
   const regex = /(早上|上午|中午|下午|傍晚|晚上|凌晨|夜里|早晨)?\s*(\d{1,2})\s*[点:：]\s*(\d{0,2})\s*(?:分|半)?/g;
-  let m: RegExpExecArray | null;
-  while ((m = regex.exec(text)) !== null) {
-    matches.push({ start: m.index, end: m.index + m[0].length, text: m[0] });
-  }
+  const matches = [...text.matchAll(regex)];
   if (matches.length === 0) return null;
-  // 取最后面（最接近光标）的
+  // 取最后一个匹配
   const last = matches[matches.length - 1];
+  const matchEnd = (last.index ?? 0) + last[0].length;
   // 时间词不能离光标太远（最多 5 个字符）
-  if (text.length - last.end > 5) return null;
-  return { start: last.start, end: last.end };
+  if (text.length - matchEnd > 5) return null;
+  return { start: last.index ?? 0, end: matchEnd };
 }
 
 // === 辅助：计算 textarea 中字符位置 ===
