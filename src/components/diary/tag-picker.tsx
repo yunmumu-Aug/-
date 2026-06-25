@@ -101,12 +101,19 @@ export default function TagPicker({ tags, textareaRef, onInsert }: Props) {
     function k(e: KeyboardEvent) {
       if (e.key === "ArrowDown") { e.preventDefault(); setIdx(p => Math.min(p + 1, filtered.length - 1)); }
       else if (e.key === "ArrowUp") { e.preventDefault(); setIdx(p => Math.max(p - 1, 0)); }
-      else if (e.key === "Enter" || e.key === "Tab") { if (filtered[idx]) { e.preventDefault(); select(filtered[idx].name); } }
+      else if (e.key === "Enter" || e.key === "Tab") {
+        // 按下 Enter 且焦点在 textarea 时，由用户选择合适的处理：
+        // 如果有正在输入的查询文字，优先选择当前高亮标签
+        if (e.key === "Enter" && e.target === textareaRef.current && query.trim() === "") {
+          return; // 让 textarea 处理换行
+        }
+        if (filtered[idx]) { e.preventDefault(); select(filtered[idx].name); }
+      }
       else if (e.key === "Escape") setOpen(false);
     }
     document.addEventListener("keydown", k);
     return () => document.removeEventListener("keydown", k);
-  }, [open, filtered, idx, select]);
+  }, [open, filtered, idx, select, query, textareaRef]);
 
   useEffect(() => {
     if (!open) return;

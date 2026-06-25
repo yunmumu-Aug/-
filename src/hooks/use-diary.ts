@@ -9,11 +9,11 @@ import type { Diary, Tag } from "@/types";
 /** 尝试解密日记内容，如果无 iv 则视为明文 */
 async function decryptDiary(diary: Diary | null, getKey: () => Promise<CryptoKey | null>): Promise<Diary | null> {
   if (!diary) return null;
-  if (!diary.content_iv || !diary.content) return diary; // 明文或无内容
+  if (!diary.content_iv || !diary.content) return diary;
   const key = await getKey();
-  if (!key) return diary; // 无密钥，返回密文（用户需重新登录）
-  diary.content = await decrypt(diary.content, diary.content_iv, key);
-  return diary;
+  if (!key) return diary;
+  // 返回新对象，不修改原始 diary
+  return { ...diary, content: await decrypt(diary.content, diary.content_iv, key) };
 }
 
 async function decryptDiaries(diaries: Diary[], getKey: () => Promise<CryptoKey | null>): Promise<Diary[]> {
@@ -21,7 +21,7 @@ async function decryptDiaries(diaries: Diary[], getKey: () => Promise<CryptoKey 
   if (!key) return diaries;
   return Promise.all(diaries.map(async (d) => {
     if (d.content_iv && d.content) {
-      d.content = await decrypt(d.content, d.content_iv, key);
+      return { ...d, content: await decrypt(d.content, d.content_iv, key) };
     }
     return d;
   }));

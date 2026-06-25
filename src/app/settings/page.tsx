@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function SettingsPage() {
   const { user, loading, signOut } = useAuth();
   const router = useRouter();
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/auth");
@@ -36,11 +37,15 @@ export default function SettingsPage() {
 
         {/* Sign out */}
         <button
-          onClick={signOut}
+          disabled={signingOut}
+          onClick={async () => {
+            setSigningOut(true);
+            try { await signOut(); } catch (e) { setSigningOut(false); }
+          }}
           className="w-full py-3 text-sm font-medium text-red-500 bg-red-50 rounded-xl
-            hover:bg-red-100 transition-colors"
+            hover:bg-red-100 transition-colors disabled:opacity-50"
         >
-          🚪 退出登录
+          {signingOut ? "退出中..." : "🚪 退出登录"}
         </button>
       </div>
     </div>

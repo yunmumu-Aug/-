@@ -63,24 +63,26 @@ export default function Home() {
     if (!user || diaryDate === loadedDate) return;
 
     let cancelled = false;
-    getDiary(diaryDate).then((diary) => {
-      if (cancelled) return;
-      if (diary) {
-        setContent(diary.content || "");
-        setWakeDatetime(
-          diary.wake_time || `${diaryDate}T07:00`
-        );
-        setSleepDatetime(
-          diary.sleep_time || `${diaryDate}T23:00`
-        );
-      } else {
-        setContent("");
-        setWakeDatetime(`${diaryDate}T07:00`);
-        setSleepDatetime(`${diaryDate}T23:00`);
-      }
-      setLoadedDate(diaryDate);
-      setSaveMessage(null);
-    });
+    getDiary(diaryDate)
+      .then((diary) => {
+        if (cancelled) return;
+        if (diary) {
+          setContent(diary.content || "");
+          setWakeDatetime(diary.wake_time || `${diaryDate}T07:00`);
+          setSleepDatetime(diary.sleep_time || `${diaryDate}T23:00`);
+        } else {
+          setContent("");
+          setWakeDatetime(`${diaryDate}T07:00`);
+          setSleepDatetime(`${diaryDate}T23:00`);
+        }
+        setLoadedDate(diaryDate);
+        setSaveMessage(null);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        console.error("加载日记失败:", e);
+        setSaveMessage("❌ 加载日记失败");
+      });
 
     return () => { cancelled = true; };
   }, [diaryDate, user, getDiary, loadedDate]);

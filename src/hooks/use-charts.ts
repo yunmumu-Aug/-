@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "./use-auth";
 import { supabase } from "@/lib/supabase";
 import type { Diary, TagStat, SummaryCard } from "@/types";
@@ -26,10 +26,12 @@ export function useChartData(start: string, end: string): ChartData {
   const { session } = useAuth();
   const [diaries, setDiaries] = useState<Diary[]>([]);
   const [loading, setLoading] = useState(true);
+  const queryIdRef = useRef(0);
 
   useEffect(() => {
     if (!session?.user?.id) { setLoading(false); return; }
     let cancelled = false;
+    const queryId = ++queryIdRef.current;
     setLoading(true);
     supabase
       .from("diaries")
@@ -39,7 +41,7 @@ export function useChartData(start: string, end: string): ChartData {
       .lte("date", end)
       .order("date", { ascending: true })
       .then(({ data, error }) => {
-        if (cancelled) return;
+        if (cancelled || queryId !== queryIdRef.current) return;
         if (error) { console.error(error); setDiaries([]); }
         else setDiaries(data || []);
         setLoading(false);

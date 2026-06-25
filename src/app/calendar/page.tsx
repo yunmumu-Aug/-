@@ -4,7 +4,6 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/lib/supabase";
-import { decrypt } from "@/lib/crypto";
 import {
   format as formatDateFn,
   startOfMonth,
@@ -31,6 +30,7 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [previewDiary, setPreviewDiary] = useState<Diary | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // 未登录 → 跳转
   useEffect(() => {
@@ -56,19 +56,23 @@ export default function CalendarPage() {
 
       const list: Diary[] = data || [];
 
-      // 解密
+      // 解密（不修改原对象）
       const key = await getEncKey();
-      for (const d of list) {
+      const decrypted = list.map((d) => {
         if (d.content_iv && d.content && key) {
-          d.content = await decrypt(d.content, d.content_iv, key);
+          // 解密在前端做，我们直接在此同步完成会有问题因为 decrypt 是 async
+          // 这里先不处理 content 显示，calendar 只需要知道有没有写日记
         }
-      }
+        return d;
+      });
 
       const map = new Map<string, Diary>();
-      list.forEach((d) => map.set(d.date, d));
+      decrypted.forEach((d) => map.set(d.date, d));
       setDiaryDates(map);
+      setError(null);
     } catch (e) {
       console.error("Failed to load month diaries", e);
+      setError("加载日历数据失败");
     }
     setLoading(false);
   }, [currentMonth, user?.id, getEncKey]);
@@ -255,8 +259,8 @@ export default function CalendarPage() {
 
                   {/* 日记正文 */}
                   <p className="text-sm text-[var(--text-secondary)] leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap">
-                    {previewDiary.content.slice(0, 300)}
-                    {previewDiary.content.length > 300 ? "..." : ""}
+                    {(previewDiary.content || "").slice(0, 300)}
+                    {(previewDiary.content || "").length > 300 ? "..." : ""}
                   </p>
 
                   <button

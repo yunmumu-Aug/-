@@ -105,7 +105,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error("SignOut error:", e);
+    }
+    // 无论成功失败都清理本地状态
     clearKey();
     setHasKey(false);
     setUser(null);
