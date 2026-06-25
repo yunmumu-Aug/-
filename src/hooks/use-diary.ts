@@ -11,17 +11,20 @@ async function decryptDiary(diary: Diary | null, getKey: () => Promise<CryptoKey
   if (!diary) return null;
   if (!diary.content_iv || !diary.content) return diary;
   const key = await getKey();
-  if (!key) return diary;
-  // 返回新对象，不修改原始 diary
+  if (!key) {
+    // 重启浏览器后密钥丢失，显示提示而非密文
+    return { ...diary, content: "🔐 请退出登录后重新登录以解密日记内容" };
+  }
   return { ...diary, content: await decrypt(diary.content, diary.content_iv, key) };
 }
 
 async function decryptDiaries(diaries: Diary[], getKey: () => Promise<CryptoKey | null>): Promise<Diary[]> {
   const key = await getKey();
-  if (!key) return diaries;
   return Promise.all(diaries.map(async (d) => {
     if (d.content_iv && d.content) {
-      return { ...d, content: await decrypt(d.content, d.content_iv, key) };
+      if (!key) return { ...d, content: "🔐 需要重新登录以解密" };
+      const decrypted = await decrypt(d.content, d.content_iv, key);
+      return decrypted ? { ...d, content: decrypted } : { ...d, content: "🔐 解密失败，请重新登录" };
     }
     return d;
   }));

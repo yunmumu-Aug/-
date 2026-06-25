@@ -39,11 +39,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [hasKey, setHasKey] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    if (sessionStorage.getItem("_timeline_enc_key") === "1") {
-      setHasKey(true);
-    }
-  }, []);
+  // 不在 mount 时从 sessionStorage 恢复 hasKey ——
+  // CryptoKey 不可序列化，浏览器重启后必定丢失。
+  // hasKey 只在登录/注册时主动设为 true。
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {

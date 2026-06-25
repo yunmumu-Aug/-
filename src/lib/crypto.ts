@@ -69,7 +69,9 @@ export async function deriveKey(
 }
 
 /**
- * 获取当前加密密钥（从内存/缓存）
+ * 获取当前加密密钥。如果内存中不可用且不提供凭据，返回 null。
+ * 注意：CryptoKey 无法序列化存储，浏览器重启后会丢失，
+ * 此时需用户重新登录以重新派生密钥。
  */
 export async function getKey(
   email?: string,
@@ -77,7 +79,11 @@ export async function getKey(
 ): Promise<CryptoKey | null> {
   if (_cachedKey) return _cachedKey;
 
-  // 尝试从 sessionStorage 恢复 → 需要重新派生
+  // sessionStorage 说密钥存在但内存中没有 → 浏览器重启过，清除过期标记
+  if (sessionStorage.getItem(KEY_STORE_KEY) === "1") {
+    sessionStorage.removeItem(KEY_STORE_KEY);
+  }
+
   if (email && password) {
     return deriveKey(email, password);
   }
