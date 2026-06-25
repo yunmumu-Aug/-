@@ -126,7 +126,7 @@ export default function CalendarPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-            className="p-2 rounded-lg hover:bg-[var(--muted)] transition-colors"
+            className="p-2 rounded-lg hover:bg-gray-50 dark:bg-slate-800 transition-colors"
           >
             ◀
           </button>
@@ -135,13 +135,13 @@ export default function CalendarPage() {
           </span>
           <button
             onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-            className="p-2 rounded-lg hover:bg-[var(--muted)] transition-colors"
+            className="p-2 rounded-lg hover:bg-gray-50 dark:bg-slate-800 transition-colors"
           >
             ▶
           </button>
           <button
             onClick={() => setCurrentMonth(new Date())}
-            className="text-sm text-[var(--accent)] hover:underline ml-2"
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline ml-2"
           >
             今天
           </button>
@@ -157,7 +157,7 @@ export default function CalendarPage() {
               <div
                 key={d}
                 className={`text-center text-xs font-medium py-2 ${
-                  i >= 5 ? "text-red-400" : "text-[var(--text-muted)]"
+                  i >= 5 ? "text-red-400" : "text-gray-400 dark:text-slate-500"
                 }`}
               >
                 {d}
@@ -166,7 +166,7 @@ export default function CalendarPage() {
           </div>
 
           {/* Days */}
-          <div className="border border-[var(--border)] rounded-xl overflow-hidden">
+          <div className="border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden">
             {calendarGrid.map((week, wi) => (
               <div key={wi} className="grid grid-cols-7">
                 {week.map((day, di) => {
@@ -181,8 +181,8 @@ export default function CalendarPage() {
                       key={key}
                       onClick={() => handleDateClick(day)}
                       className={`relative flex flex-col items-center justify-center h-14 md:h-16
-                        border-r border-b border-[var(--border)] transition-colors
-                        ${!isCurrentMonth ? "bg-[var(--muted)] text-[var(--text-muted)]" : "hover:bg-blue-50"}
+                        border-r border-b border-gray-200 dark:border-slate-700 transition-colors
+                        ${!isCurrentMonth ? "bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500" : "hover:bg-blue-50"}
                         ${isSelected ? "bg-blue-100" : ""}
                         ${di === 6 ? "border-r-0" : ""}
                         ${wi === calendarGrid.length - 1 ? "border-b-0" : ""}
@@ -191,16 +191,16 @@ export default function CalendarPage() {
                       <span
                         className={`text-sm ${
                           today
-                            ? "inline-flex items-center justify-center w-7 h-7 rounded-full bg-[var(--accent)] text-white"
+                            ? "inline-flex items-center justify-center w-7 h-7 rounded-full bg-blue-500 text-white"
                             : isCurrentMonth
-                            ? "text-[var(--foreground)]"
+                            ? "text-gray-800 dark:text-slate-200"
                             : ""
                         }`}
                       >
                         {day.getDate()}
                       </span>
                       {hasDiary && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] mt-0.5" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-0.5" />
                       )}
                     </button>
                   );
@@ -213,7 +213,7 @@ export default function CalendarPage() {
         {/* Preview panel */}
         <div className="lg:w-72 shrink-0">
           {selectedDate ? (
-            <div className="p-4 bg-white border border-[var(--border)] rounded-xl">
+            <div className="p-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl">
               <h3 className="text-sm font-medium mb-1">
                 {formatDateFn(selectedDate, "M月d日 EEEE", { locale: zhCN })}
               </h3>
@@ -224,7 +224,7 @@ export default function CalendarPage() {
                   {(previewDiary.wake_time || previewDiary.sleep_time) && (
                     <div className="flex gap-3 text-xs">
                       {previewDiary.wake_time && (
-                        <span className="text-[var(--accent)]">
+                        <span className="text-blue-600 dark:text-blue-400">
                           ⏰ 起床 {previewDiary.wake_time.replace("T", " ")}
                         </span>
                       )}
@@ -258,24 +258,24 @@ export default function CalendarPage() {
                   )}
 
                   {/* 日记正文 */}
-                  <p className="text-sm text-[var(--text-secondary)] leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap">
+                  <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap">
                     {(previewDiary.content || "").slice(0, 300)}
                     {(previewDiary.content || "").length > 300 ? "..." : ""}
                   </p>
 
                   <button
                     onClick={() => router.push("/")}
-                    className="w-full mt-2 py-2 text-xs text-[var(--accent)] border border-[var(--border)] rounded-lg hover:bg-blue-50 transition-colors"
+                    className="w-full mt-2 py-2 text-xs text-blue-600 dark:text-blue-400 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-blue-50 transition-colors"
                   >
                     查看/编辑完整日记 →
                   </button>
                 </div>
               ) : (
-                <div className="mt-3 text-sm text-[var(--text-muted)]">
+                <div className="mt-3 text-sm text-gray-400 dark:text-slate-500">
                   <p>这天还没写日记</p>
                   <button
                     onClick={() => router.push("/")}
-                    className="mt-2 w-full py-2 text-xs text-[var(--accent)] border border-[var(--border)] rounded-lg hover:bg-blue-50 transition-colors"
+                    className="mt-2 w-full py-2 text-xs text-blue-600 dark:text-blue-400 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-blue-50 transition-colors"
                   >
                     去写日记 →
                   </button>
@@ -283,7 +283,7 @@ export default function CalendarPage() {
               )}
             </div>
           ) : (
-            <div className="p-4 bg-[var(--muted)] rounded-xl border border-[var(--border)] text-sm text-[var(--text-muted)]">
+            <div className="p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 text-sm text-gray-400 dark:text-slate-500">
               点击日历中的日期查看日记预览
             </div>
           )}

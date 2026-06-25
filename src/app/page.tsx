@@ -170,154 +170,83 @@ export default function Home() {
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-[var(--text-secondary)]">加载中...</p>
+        <p className="text-gray-500 dark:text-slate-400">加载中...</p>
       </div>
     );
   }
 
-  if (!user) return null; // 即将跳转
+  if (!user) return null;
 
   return (
     <div className="w-full max-w-full md:max-w-3xl mx-auto px-4 py-6 md:py-8 overflow-x-hidden">
-      {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-[var(--foreground)]">
-          ✍️ 写日记
-        </h1>
-        <p className="text-sm text-[var(--text-secondary)] mt-1">
-          {displayDate}
-        </p>
+        <h1 className="text-2xl font-semibold">✍️ 写日记</h1>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">{displayDate}</p>
       </div>
 
-      {/* Date picker */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
-          📅 日记日期
-        </label>
+        <label className="block text-sm font-medium text-gray-500 dark:text-slate-400 mb-1.5">📅 日记日期</label>
         <div className="relative w-full md:w-60">
-          <input
-            type="date"
-            value={diaryDate}
-            onChange={(e) => setDiaryDate(e.target.value)}
-            className="w-full px-4 py-2.5 bg-white border border-[var(--border)] rounded-lg text-sm text-[var(--foreground)]
-              focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-          />
+          <input type="date" value={diaryDate} onChange={(e) => setDiaryDate(e.target.value)}
+            className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm
+              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
         </div>
       </div>
 
-      {/* Wake / Sleep time */}
       <div className="flex gap-3 mb-6">
-        <div className="flex-1 min-w-0 p-3 md:p-4 bg-[var(--muted)] rounded-xl border border-[var(--border)]">
-          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-            ⏰ 起床时间
-          </label>
-          <input
-            type="datetime-local"
-            value={wakeDatetime}
-            onChange={(e) => setWakeDatetime(e.target.value)}
-            className="w-full px-3 py-2 bg-white border border-[var(--border)] rounded-lg text-sm
-              focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-          />
+        <div className="flex-1 min-w-0 p-3 md:p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700">
+          <label className="block text-sm font-medium text-gray-500 dark:text-slate-400 mb-2">⏰ 起床时间</label>
+          <input type="datetime-local" value={wakeDatetime} onChange={(e) => setWakeDatetime(e.target.value)}
+            className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-sm
+              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
         </div>
-        <div className="flex-1 min-w-0 p-3 md:p-4 bg-[var(--muted)] rounded-xl border border-[var(--border)]">
-          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-            🌙 入睡时间
-          </label>
-          <input
-            type="datetime-local"
-            value={sleepDatetime}
-            onChange={(e) => setSleepDatetime(e.target.value)}
-            className="w-full px-3 py-2 bg-white border border-[var(--border)] rounded-lg text-sm
-              focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-          />
+        <div className="flex-1 min-w-0 p-3 md:p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700">
+          <label className="block text-sm font-medium text-gray-500 dark:text-slate-400 mb-2">🌙 入睡时间</label>
+          <input type="datetime-local" value={sleepDatetime} onChange={(e) => setSleepDatetime(e.target.value)}
+            className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-sm
+              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
         </div>
       </div>
 
-      {/* Diary content */}
       <div className="mb-4 relative">
-        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
-          📝 日记内容
-        </label>
-        <textarea
-          ref={textareaRef}
-          rows={14}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
+        <label className="block text-sm font-medium text-gray-500 dark:text-slate-400 mb-1.5">📝 日记内容</label>
+        <textarea ref={textareaRef} rows={14} value={content} onChange={(e) => setContent(e.target.value)}
           placeholder="在这里写日记...&#10;&#10;用 #标签 标记活动，如：&#10;上午9点 #起床，然后 #刷牙，吃了 #早饭，开始 #工作"
-          className="w-full px-4 py-3 border border-[var(--border)] rounded-lg text-sm leading-relaxed resize-y
-            focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-        />
-        <TagPicker
-          tags={tags}
-          textareaRef={textareaRef}
-          onInsert={(newText) => {
-            setContent(newText);
-          }}
-        />
-        <p className="text-xs text-[var(--text-muted)] mt-1.5">
+          className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm leading-relaxed resize-y
+            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400 dark:placeholder-slate-500" />
+        <TagPicker tags={tags} textareaRef={textareaRef} onInsert={(newText) => setContent(newText)} />
+        <p className="text-xs text-gray-400 dark:text-slate-500 mt-1.5">
           💡 输入 # 号自动弹出标签选择框，支持键盘 ↑↓ 选择，Enter 确认
         </p>
       </div>
 
-      {/* Tag preview */}
-      <div className="p-4 bg-[var(--muted)] rounded-xl border border-[var(--border)] mb-6">
-        <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-2">
-          🏷️ 识别的标签
-        </h3>
+      <div className="p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 mb-6">
+        <h3 className="text-sm font-medium text-gray-500 dark:text-slate-400 mb-2">🏷️ 识别的标签</h3>
         <div className="flex flex-wrap gap-2 min-h-[32px] items-center">
-          {parsedTags.length > 0 ? (
-            parsedTags.map((pt, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700"
-              >
+          {parsedTags.length > 0
+            ? parsedTags.map((pt, i) => (
+              <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
                 #{pt.tagName}
-                {pt.timeStr && (
-                  <span className="opacity-60 text-[10px]">{pt.timeStr}</span>
-                )}
+                {pt.timeStr && <span className="opacity-60 text-[10px]">{pt.timeStr}</span>}
               </span>
             ))
-          ) : (
-            <span className="text-xs text-[var(--text-muted)]">
-              写日记后这里会自动显示识别到的标签...
-            </span>
-          )}
+            : <span className="text-xs text-gray-400 dark:text-slate-500">写日记后这里会自动显示识别到的标签...</span>}
         </div>
       </div>
 
-      {/* Actions */}
       <div className="flex items-center justify-between gap-3">
         <div>
           {saveMessage && (
-            <span
-              className={`text-sm ${
-                saveMessage.startsWith("✅")
-                  ? "text-green-600"
-                  : "text-red-500"
-              }`}
-            >
-              {saveMessage}
-            </span>
+            <span className={`text-sm ${saveMessage.startsWith("✅") ? "text-green-600" : "text-red-500"}`}>{saveMessage}</span>
           )}
         </div>
         <div className="flex gap-3">
-          <button
-            onClick={() => {
-              const key = `draft-${diaryDate}`;
-              localStorage.setItem(key, content);
-              setSaveMessage("✅ 草稿已暂存");
-              setTimeout(() => setSaveMessage(null), 1500);
-            }}
-            className="px-4 py-2.5 border border-[var(--border)] text-sm font-medium rounded-lg hover:bg-[var(--muted)] transition-colors"
-          >
+          <button onClick={() => { localStorage.setItem(`draft-${diaryDate}`, content); setSaveMessage("✅ 草稿已暂存"); setTimeout(() => setSaveMessage(null), 1500); }}
+            className="px-4 py-2.5 border border-gray-200 dark:border-slate-700 text-sm font-medium rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
             暂存草稿
           </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-6 py-2.5 bg-[var(--accent)] text-white text-sm font-medium rounded-lg
-              hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50"
-          >
+          <button onClick={handleSave} disabled={saving}
+            className="px-6 py-2.5 bg-blue-500 dark:bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-600 dark:hover:bg-blue-500 transition-colors disabled:opacity-50">
             {saving ? "保存中..." : "保存日记"}
           </button>
         </div>

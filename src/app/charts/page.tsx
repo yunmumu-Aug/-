@@ -55,13 +55,13 @@ function HorizontalBar({ data }: { data: TagStat[] }) {
   const top = data.slice(0, 8);
   return (
     <div className="space-y-2">
-      {top.length === 0 && <p className="text-sm text-[var(--text-muted)]">暂无数据</p>}
+      {top.length === 0 && <p className="text-sm text-gray-400 dark:text-slate-500">暂无数据</p>}
       {top.map((s, i) => (
         <div key={s.tagId} className="flex items-center gap-2 text-sm">
-          <span className="w-4 text-right text-xs text-[var(--text-muted)]">{i + 1}</span>
+          <span className="w-4 text-right text-xs text-gray-400 dark:text-slate-500">{i + 1}</span>
           <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} />
           <span className="w-12 truncate">{s.tagName}</span>
-          <div className="flex-1 bg-[var(--muted)] rounded-full h-4 overflow-hidden">
+          <div className="flex-1 bg-gray-50 dark:bg-slate-800 rounded-full h-4 overflow-hidden">
             <div
               className="h-full rounded-full transition-all"
               style={{
@@ -71,7 +71,7 @@ function HorizontalBar({ data }: { data: TagStat[] }) {
               }}
             />
           </div>
-          <span className="text-xs text-[var(--text-muted)] w-10 text-right">{s.count}次</span>
+          <span className="text-xs text-gray-400 dark:text-slate-500 w-10 text-right">{s.count}次</span>
         </div>
       ))}
     </div>
@@ -84,38 +84,38 @@ function SummaryCard({ summary }: { summary: any }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
       {summary.totalDiaries > 0 && (
-        <div className="p-2 bg-[var(--muted)] rounded-lg">
-          <div className="text-[var(--text-muted)]">日记数</div>
+        <div className="p-2 bg-gray-50 dark:bg-slate-800 rounded-lg">
+          <div className="text-gray-400 dark:text-slate-500">日记数</div>
           <div className="text-lg font-semibold mt-0.5">{summary.totalDiaries}</div>
         </div>
       )}
       {summary.topTag && (
-        <div className="p-2 bg-[var(--muted)] rounded-lg">
-          <div className="text-[var(--text-muted)]">最高频</div>
+        <div className="p-2 bg-gray-50 dark:bg-slate-800 rounded-lg">
+          <div className="text-gray-400 dark:text-slate-500">最高频</div>
           <div className="text-lg font-semibold mt-0.5">{summary.topTag.name}</div>
         </div>
       )}
       {summary.avgSleepHours && (
-        <div className="p-2 bg-[var(--muted)] rounded-lg">
-          <div className="text-[var(--text-muted)]">平均睡眠</div>
+        <div className="p-2 bg-gray-50 dark:bg-slate-800 rounded-lg">
+          <div className="text-gray-400 dark:text-slate-500">平均睡眠</div>
           <div className="text-lg font-semibold mt-0.5">{summary.avgSleepHours}h</div>
         </div>
       )}
       {summary.longestStreak > 0 && (
-        <div className="p-2 bg-[var(--muted)] rounded-lg">
-          <div className="text-[var(--text-muted)]">最长连续</div>
+        <div className="p-2 bg-gray-50 dark:bg-slate-800 rounded-lg">
+          <div className="text-gray-400 dark:text-slate-500">最长连续</div>
           <div className="text-lg font-semibold mt-0.5">{summary.longestStreak}天</div>
         </div>
       )}
       {summary.earliestWake && (
-        <div className="p-2 bg-[var(--muted)] rounded-lg">
-          <div className="text-[var(--text-muted)]">最早起</div>
+        <div className="p-2 bg-gray-50 dark:bg-slate-800 rounded-lg">
+          <div className="text-gray-400 dark:text-slate-500">最早起</div>
           <div className="text-lg font-semibold mt-0.5">{summary.earliestWake?.replace("T", " ")}</div>
         </div>
       )}
       {summary.latestWake && (
-        <div className="p-2 bg-[var(--muted)] rounded-lg">
-          <div className="text-[var(--text-muted)]">最晚起</div>
+        <div className="p-2 bg-gray-50 dark:bg-slate-800 rounded-lg">
+          <div className="text-gray-400 dark:text-slate-500">最晚起</div>
           <div className="text-lg font-semibold mt-0.5">{summary.latestWake?.replace("T", " ")}</div>
         </div>
       )}
@@ -127,7 +127,7 @@ function SummaryCard({ summary }: { summary: any }) {
 function PieBlock({ title, data }: { title: string; data: { name: string; value: number; color: string }[] }) {
   if (data.length === 0) return <EmptyBlock title={title} />;
   return (
-    <div className="bg-white border border-[var(--border)] rounded-xl p-4">
+    <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
       <h3 className="text-sm font-medium mb-2">{title}</h3>
       <ResponsiveContainer width="100%" height={200}>
         <PieChart>
@@ -146,7 +146,7 @@ function BarBlock({ title, data, color }: { title: string; data: { name: string;
   const c = color || "#3B82F6";
   if (data.length === 0) return <EmptyBlock title={title} />;
   return (
-    <div className="bg-white border border-[var(--border)] rounded-xl p-4">
+    <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
       <h3 className="text-sm font-medium mb-2">{title}</h3>
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data}>
@@ -166,7 +166,7 @@ function LineBlock({ title, data, color }: { title: string; data: { name: string
   const c = color || "#3B82F6";
   if (data.length === 0) return <EmptyBlock title={title} />;
   return (
-    <div className="bg-white border border-[var(--border)] rounded-xl p-4">
+    <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
       <h3 className="text-sm font-medium mb-2">{title}</h3>
       <ResponsiveContainer width="100%" height={200}>
         <LineChart data={data}>
@@ -183,8 +183,8 @@ function LineBlock({ title, data, color }: { title: string; data: { name: string
 
 function EmptyBlock({ title }: { title: string }) {
   return (
-    <div className="bg-white border border-[var(--border)] rounded-xl p-4 flex items-center justify-center h-[200px]">
-      <p className="text-sm text-[var(--text-muted)]">{title} — 暂无数据</p>
+    <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4 flex items-center justify-center h-[200px]">
+      <p className="text-sm text-gray-400 dark:text-slate-500">{title} — 暂无数据</p>
     </div>
   );
 }
@@ -263,7 +263,7 @@ function Timeline24h({ diary }: { diary: any }) {
   }
 
   return (
-    <div className="bg-white border border-[var(--border)] rounded-xl p-4 overflow-x-auto">
+    <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4 overflow-x-auto">
       <h3 className="text-sm font-medium mb-3">🕐 {diary.date} 24小时时间轴</h3>
       <div className="flex">
         <div className="flex-1 min-w-0">
@@ -271,13 +271,13 @@ function Timeline24h({ diary }: { diary: any }) {
             <div key={idx} className="flex items-start">
               {/* 时间标签 */}
               <div className="shrink-0 w-12 text-right pr-2">
-                <span className="text-xs text-[var(--text-muted)] leading-none block" style={{ marginTop: row.type === "sleep" ? 14 : 6 }}>
+                <span className="text-xs text-gray-400 dark:text-slate-500 leading-none block" style={{ marginTop: row.type === "sleep" ? 14 : 6 }}>
                   {row.type === "hour" ? `${row.hour}:00` : fmt(sleepStart)}
                 </span>
               </div>
 
               {/* 内容 */}
-              <div className="flex-1 relative border-l-2 border-[var(--border)]" style={{ minHeight: row.type === "sleep" ? sleepBlockH : hourHeight }}>
+              <div className="flex-1 relative border-l-2 border-gray-200 dark:border-slate-700" style={{ minHeight: row.type === "sleep" ? sleepBlockH : hourHeight }}>
                 <div className="absolute left-0 right-0 top-0 border-t border-dashed border-gray-100" />
 
                 {row.type === "sleep" ? (
@@ -342,12 +342,12 @@ function YearHeatmap({ diaries, year }: { diaries: any[]; year: number }) {
   }
 
   return (
-    <div className="bg-white border border-[var(--border)] rounded-xl p-4">
+    <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
       <h3 className="text-sm font-medium mb-3">🗓️ {year}年 活跃热力图</h3>
       <div className="flex flex-wrap gap-4">
         {months.map((m) => (
           <div key={m.label} className="flex flex-col gap-0.5">
-            <span className="text-[10px] text-[var(--text-muted)] mb-0.5">{m.label}</span>
+            <span className="text-[10px] text-gray-400 dark:text-slate-500 mb-0.5">{m.label}</span>
             <div className="grid grid-cols-7 gap-0.5">
               {m.days.map((d) => (
                 <div
@@ -361,7 +361,7 @@ function YearHeatmap({ diaries, year }: { diaries: any[]; year: number }) {
           </div>
         ))}
       </div>
-      <div className="flex items-center gap-2 mt-3 text-[10px] text-[var(--text-muted)]">
+      <div className="flex items-center gap-2 mt-3 text-[10px] text-gray-400 dark:text-slate-500">
         <span className="w-3 h-3 rounded-sm" style={{ background: "#F3F4F6" }} />
         <span>无</span>
         <span className="w-3 h-3 rounded-sm" style={{ background: "#DBEAFE" }} />
@@ -562,15 +562,15 @@ export default function ChartsPage() {
       {/* Header + tabs */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
         <h1 className="text-2xl font-semibold">📊 图表分析</h1>
-        <div className="flex gap-1 bg-[var(--muted)] rounded-lg p-1">
+        <div className="flex gap-1 bg-gray-50 dark:bg-slate-800 rounded-lg p-1">
           {RANGES.map((r) => (
             <button
               key={r}
               onClick={() => setRange(r)}
               className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 range === r
-                  ? "bg-white text-[var(--accent)] shadow-sm"
-                  : "text-[var(--text-secondary)] hover:text-[var(--foreground)]"
+                  ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
+                  : "text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200"
               }`}
             >
               {{ today: "今天", week: "本周", month: "本月", year: "年度" }[r]}
@@ -580,11 +580,11 @@ export default function ChartsPage() {
       </div>
 
       {loading && (
-        <div className="text-center py-20 text-[var(--text-muted)]">加载中...</div>
+        <div className="text-center py-20 text-gray-400 dark:text-slate-500">加载中...</div>
       )}
 
       {!loading && diaries.length === 0 && (
-        <div className="text-center py-20 text-[var(--text-muted)]">
+        <div className="text-center py-20 text-gray-400 dark:text-slate-500">
           <p className="text-lg mb-1">📭 暂无数据</p>
           <p className="text-sm">去写几篇日记再来看图表吧！</p>
         </div>
@@ -599,7 +599,7 @@ export default function ChartsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <PieBlock title="今日标签占比" data={tagStatToPieData(tagStats)} />
                 {summary && (
-                  <div className="bg-white border border-[var(--border)] rounded-xl p-4">
+                  <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
                     <h3 className="text-sm font-medium mb-3">📋 今日概况</h3>
                     <SummaryCard summary={summary} />
                   </div>
@@ -619,8 +619,8 @@ export default function ChartsPage() {
                     onClick={() => setSelectedDate(d.date)}
                     className={`px-3 py-1 text-xs rounded-full transition-colors ${
                       selectedDate === d.date
-                        ? "bg-[var(--accent)] text-white"
-                        : "bg-[var(--muted)] text-[var(--text-secondary)] hover:bg-[var(--border)]"
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600"
                     }`}
                   >
                     {d.date.slice(5)}
@@ -644,12 +644,12 @@ export default function ChartsPage() {
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-white border border-[var(--border)] rounded-xl p-4">
+                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
                   <h3 className="text-sm font-medium mb-3">🏆 本周活动排行</h3>
                   <HorizontalBar data={tagStats} />
                 </div>
                 {summary && (
-                  <div className="bg-white border border-[var(--border)] rounded-xl p-4">
+                  <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
                     <h3 className="text-sm font-medium mb-3">📋 本周总结</h3>
                     <SummaryCard summary={summary} />
                   </div>
@@ -668,8 +668,8 @@ export default function ChartsPage() {
                     onClick={() => setSelectedDate(d.date)}
                     className={`px-3 py-1 text-xs rounded-full transition-colors ${
                       selectedDate === d.date
-                        ? "bg-[var(--accent)] text-white"
-                        : "bg-[var(--muted)] text-[var(--text-secondary)] hover:bg-[var(--border)]"
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600"
                     }`}
                   >
                     {d.date.slice(5)}
@@ -690,12 +690,12 @@ export default function ChartsPage() {
               {monthWakeBars.length > 0 && <BarBlock title="每日起床时间" data={monthWakeBars} color="#10B981" />}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-white border border-[var(--border)] rounded-xl p-4">
+                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
                   <h3 className="text-sm font-medium mb-3">🏆 本月活动排行</h3>
                   <HorizontalBar data={tagStats} />
                 </div>
                 {summary && (
-                  <div className="bg-white border border-[var(--border)] rounded-xl p-4">
+                  <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
                     <h3 className="text-sm font-medium mb-3">📋 月度总结</h3>
                     <SummaryCard summary={summary} />
                   </div>
@@ -719,12 +719,12 @@ export default function ChartsPage() {
               {yearWakeBars.length > 0 && <BarBlock title="各月平均起床时间" data={yearWakeBars} color="#10B981" />}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-white border border-[var(--border)] rounded-xl p-4">
+                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
                   <h3 className="text-sm font-medium mb-3">🏆 年度活动排行</h3>
                   <HorizontalBar data={tagStats} />
                 </div>
                 {summary && (
-                  <div className="bg-white border border-[var(--border)] rounded-xl p-4">
+                  <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
                     <h3 className="text-sm font-medium mb-3">🏅 年度总结</h3>
                     <SummaryCard summary={summary} />
                   </div>

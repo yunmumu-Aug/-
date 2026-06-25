@@ -134,7 +134,7 @@ export default function TagsPage() {
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-[var(--text-secondary)]">加载中...</p>
+        <p className="text-gray-500 dark:text-slate-400">加载中...</p>
       </div>
     );
   }
@@ -158,7 +158,7 @@ export default function TagsPage() {
       )}
 
       {/* 创建标签 */}
-      <section className="mb-8 p-4 bg-[var(--muted)] rounded-xl border border-[var(--border)]">
+      <section className="mb-8 p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700">
         <h2 className="text-sm font-medium mb-3">新建标签</h2>
         <div className="flex flex-col sm:flex-row gap-3">
           <input
@@ -166,8 +166,8 @@ export default function TagsPage() {
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="标签名"
-            className="flex-1 px-3 py-2 border border-[var(--border)] rounded-lg text-sm
-              focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+            className="flex-1 px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg text-sm
+              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             onKeyDown={(e) => e.key === "Enter" && handleCreate()}
           />
           <div className="flex gap-1.5 items-center">
@@ -195,7 +195,7 @@ export default function TagsPage() {
             ))}
             {/* Custom color input */}
             <label className={`w-6 h-6 rounded-full border-2 transition-transform cursor-pointer flex items-center justify-center
-              bg-white ${!["random", ...COLORS].includes(newColor) ? "border-gray-800 scale-110" : "border-gray-300"}`}
+              bg-white dark:bg-slate-800 ${!["random", ...COLORS].includes(newColor) ? "border-gray-800 scale-110" : "border-gray-300"}`}
               title="自定颜色"
             >
               <span className="text-[10px]">＋</span>
@@ -209,8 +209,8 @@ export default function TagsPage() {
           </div>
           <button
             onClick={handleCreate}
-            className="px-4 py-2 bg-[var(--accent)] text-white text-sm font-medium rounded-lg
-              hover:bg-[var(--accent-hover)] transition-colors shrink-0"
+            className="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg
+              hover:bg-blue-600 transition-colors shrink-0"
           >
             创建
           </button>
@@ -218,28 +218,28 @@ export default function TagsPage() {
       </section>
 
       {/* 批量导入 */}
-      <section className="mb-8 p-4 bg-[var(--muted)] rounded-xl border border-[var(--border)]">
+      <section className="mb-8 p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700">
         <h2 className="text-sm font-medium mb-3">批量导入标签</h2>
         <textarea
           value={batchInput}
           onChange={(e) => setBatchInput(e.target.value)}
           placeholder="每行一个标签名，或用逗号分隔&#10;例如：&#10;运动, 阅读, 冥想&#10;写作&#10;画画"
           rows={4}
-          className="w-full px-3 py-2 border border-[var(--border)] rounded-lg text-sm resize-y mb-2
-            focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+          className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg text-sm resize-y mb-2
+            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         <div className="flex gap-2">
           <button
             onClick={handleBatchImport}
-            className="px-4 py-2 bg-[var(--accent)] text-white text-sm font-medium rounded-lg
-              hover:bg-[var(--accent-hover)] transition-colors"
+            className="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg
+              hover:bg-blue-600 transition-colors"
           >
             导入
           </button>
           <button
             onClick={handleInitPresets}
-            className="px-4 py-2 border border-[var(--border)] text-sm font-medium rounded-lg
-              hover:bg-[var(--muted)] transition-colors"
+            className="px-4 py-2 border border-gray-200 dark:border-slate-700 text-sm font-medium rounded-lg
+              hover:bg-gray-50 dark:bg-slate-800 transition-colors"
           >
             初始化预设标签
           </button>
@@ -248,13 +248,13 @@ export default function TagsPage() {
 
       {/* 标签列表 */}
       <section>
-        <h2 className="text-sm font-medium mb-3 text-[var(--text-secondary)]">
+        <h2 className="text-sm font-medium mb-3 text-gray-500 dark:text-slate-400">
           已有标签（{tags.length} 个）
         </h2>
         {loading ? (
-          <p className="text-sm text-[var(--text-muted)]">加载中...</p>
+          <p className="text-sm text-gray-400 dark:text-slate-500">加载中...</p>
         ) : tags.length === 0 ? (
-          <p className="text-sm text-[var(--text-muted)]">
+          <p className="text-sm text-gray-400 dark:text-slate-500">
             还没有标签，创建或导入你的第一个标签吧
           </p>
         ) : (
@@ -262,7 +262,7 @@ export default function TagsPage() {
             {tags.map((tag) => (
               <div
                 key={tag.id}
-                className="flex items-center justify-between p-3 bg-white border border-[var(--border)]
+                className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700
                   rounded-lg hover:shadow-sm transition-shadow"
               >
                 <div className="flex items-center gap-2 min-w-0">
@@ -275,7 +275,7 @@ export default function TagsPage() {
                 <button
                   onClick={() => handleDelete(tag.id)}
                   disabled={deleting === tag.id}
-                  className="ml-2 text-xs text-[var(--text-muted)] hover:text-red-500 shrink-0
+                  className="ml-2 text-xs text-gray-400 dark:text-slate-500 hover:text-red-500 shrink-0
                     disabled:opacity-30 transition-colors"
                 >
                   {deleting === tag.id ? "..." : "✕"}

@@ -64,8 +64,8 @@ export default function AuthPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-[var(--text-secondary)]">加载中...</div>
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-900">
+        <div className="text-gray-500 dark:text-slate-400">加载中...</div>
       </div>
     );
   }
@@ -73,14 +73,14 @@ export default function AuthPage() {
   if (user) return null; // 即将跳转
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white px-4">
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-900 px-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-semibold text-[var(--foreground)] mb-1">
+          <h1 className="text-3xl font-semibold text-gray-800 dark:text-slate-200 mb-1">
             ⏳ 时光轴
           </h1>
-          <p className="text-sm text-[var(--text-secondary)]">
+          <p className="text-sm text-gray-500 dark:text-slate-400">
             记录生活，看见时间的形状
           </p>
         </div>
@@ -90,19 +90,19 @@ export default function AuthPage() {
           <button
             type="button"
             onClick={testConnection}
-            className="text-xs text-[var(--text-muted)] hover:text-[var(--accent)] underline"
+            className="text-xs text-gray-400 dark:text-slate-500 hover:text-blue-600 dark:text-blue-400 underline"
           >
             检测网络连接
           </button>
           {networkStatus && (
-            <p className="text-xs mt-1 text-[var(--text-secondary)]">{networkStatus}</p>
+            <p className="text-xs mt-1 text-gray-500 dark:text-slate-400">{networkStatus}</p>
           )}
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
+            <label className="block text-sm font-medium text-gray-500 dark:text-slate-400 mb-1.5">
               邮箱
             </label>
             <input
@@ -110,14 +110,14 @@ export default function AuthPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
-              className="w-full px-4 py-2.5 border border-[var(--border)] rounded-lg text-sm
-                focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+              className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-lg text-sm
+                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               autoComplete="email"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
+            <label className="block text-sm font-medium text-gray-500 dark:text-slate-400 mb-1.5">
               密码
             </label>
             <input
@@ -125,8 +125,8 @@ export default function AuthPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="至少 6 位"
-              className="w-full px-4 py-2.5 border border-[var(--border)] rounded-lg text-sm
-                focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+              className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-lg text-sm
+                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               autoComplete={isLogin ? "current-password" : "new-password"}
             />
           </div>
@@ -146,8 +146,8 @@ export default function AuthPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-2.5 bg-[var(--accent)] text-white text-sm font-medium rounded-lg
-              hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50"
+            className="w-full py-2.5 bg-blue-500 text-white text-sm font-medium rounded-lg
+              hover:bg-blue-600 transition-colors disabled:opacity-50"
           >
             {submitting ? "处理中..." : isLogin ? "登录" : "注册"}
           </button>
@@ -160,7 +160,7 @@ export default function AuthPage() {
               setIsLogin(!isLogin);
               setError(null);
             }}
-            className="text-sm text-[var(--accent)] hover:underline"
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
           >
             {isLogin ? "没有账号？去注册" : "已有账号？去登录"}
           </button>

@@ -17,6 +17,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   getEncKey: () => Promise<CryptoKey | null>;
+  updateProfile: (updates: { display_name?: string; avatar_url?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -29,6 +30,7 @@ const AuthContext = createContext<AuthContextType>({
   signIn: async () => ({ error: "未初始化" }),
   signOut: async () => {},
   getEncKey: async () => null,
+  updateProfile: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -121,9 +123,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return getKey();
   }, []);
 
+  const updateProfile = useCallback(async (updates: { display_name?: string; avatar_url?: string }) => {
+    if (!user?.id) return;
+    const { data, error } = await supabase
+      .from("profiles")
+      .upsert({ id: user.id, ...updates }, { onConflict: "id" })
+      .select()
+      .single();
+    if (!error && data) setProfile(data);
+  }, [user?.id]);
+
   return (
     <AuthContext.Provider
-      value={{ user, profile, session, loading, hasKey, signUp, signIn, signOut, getEncKey }}
+      value={{ user, profile, session, loading, hasKey, signUp, signIn, signOut, getEncKey, updateProfile }}
     >
       {children}
     </AuthContext.Provider>
