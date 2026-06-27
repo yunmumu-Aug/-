@@ -19,6 +19,32 @@ const TIME_PATTERNS = [
   /(\d{1,2})\s*[:：]\s*(\d{2})/g,
 ];
 
+/** 时间范围匹配：13点-14点、13:00-14:00、13点～14点、13点到14点、10点半到11点 */
+// 每次使用新建，避免 g 标志状态问题
+function parseTimeRange(text: string, tagPos: number): string | null {
+  const searchStart = Math.max(0, tagPos - 30);
+  const searchText = text.substring(searchStart, tagPos);
+  const re = /(\d{1,2})\s*[点:：时]\s*(\d{0,2})(半)?\s*(?:分)?\s*[-–—～~到至]\s*(\d{1,2})\s*[点:：时]\s*(\d{0,2})(半)?/g;
+  let best: { h1: number; m1: number; h2: number; m2: number; dist: number } | null = null;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(searchText)) !== null) {
+    const matchEnd = searchStart + m.index + m[0].length;
+    const dist = tagPos - matchEnd;
+    if (dist > 8) continue;
+    const h1 = parseInt(m[1], 10);
+    let m1 = parseInt(m[2] || "0", 10);
+    if (isNaN(m1)) m1 = 0;
+    if (m[3]) m1 = 30;
+    const h2 = parseInt(m[4], 10);
+    let m2 = parseInt(m[5] || "0", 10);
+    if (isNaN(m2)) m2 = 0;
+    if (m[6]) m2 = 30;
+    if (!best || dist < best.dist) best = { h1, m1, h2, m2, dist };
+  }
+  if (!best) return null;
+  return `${String(best.h1).padStart(2, "0")}:${String(best.m1).padStart(2, "0")}-${String(best.h2).padStart(2, "0")}:${String(best.m2).padStart(2, "0")}`;
+}
+
 interface TagMatch {
   tag: string;
   index: number;
@@ -55,6 +81,10 @@ export function findNearestTime(
   // 取标签之前最多 30 个字符的文本
   const searchStart = Math.max(0, position - 30);
   const searchText = text.substring(searchStart, position);
+
+  // 先检查时间范围：13点-14点、13:00-14:00
+  const rangeResult = parseTimeRange(text, position);
+  if (rangeResult) return rangeResult;
 
   let bestMatch: string | null = null;
   let bestDistance = Infinity;

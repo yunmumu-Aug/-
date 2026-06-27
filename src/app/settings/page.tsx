@@ -56,7 +56,7 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 md:py-8">
-      <h1 className="text-2xl font-semibold mb-6">⚙️ 设置</h1>
+      <h1 className="hidden lg:block text-2xl font-semibold mb-6">⚙️ 设置</h1>
 
       {/* ---- Profile Card ---- */}
       <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-6 mb-5">

@@ -8,9 +8,10 @@ interface Props {
   tags: Tag[];
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   onInsert: (newText: string) => void;
+  tagUsage?: Map<string, number>;
 }
 
-export default function TagPicker({ tags, textareaRef, onInsert }: Props) {
+export default function TagPicker({ tags, textareaRef, onInsert, tagUsage }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [idx, setIdx] = useState(0);
@@ -20,6 +21,13 @@ export default function TagPicker({ tags, textareaRef, onInsert }: Props) {
 
   const filtered = tags.filter((t) => t.name.toLowerCase().includes(query.toLowerCase()));
   useEffect(() => setIdx(0), [query]);
+
+  // 自动滚动使选中项可见
+  useEffect(() => {
+    if (!open || !listRef.current) return;
+    const el = listRef.current.querySelector(`[data-idx="${idx}"]`) as HTMLElement;
+    if (el) el.scrollIntoView({ block: "nearest" });
+  }, [idx, open]);
 
   const check = useCallback(() => {
     const el = textareaRef.current;
@@ -102,11 +110,6 @@ export default function TagPicker({ tags, textareaRef, onInsert }: Props) {
       if (e.key === "ArrowDown") { e.preventDefault(); setIdx(p => Math.min(p + 1, filtered.length - 1)); }
       else if (e.key === "ArrowUp") { e.preventDefault(); setIdx(p => Math.max(p - 1, 0)); }
       else if (e.key === "Enter" || e.key === "Tab") {
-        // 按下 Enter 且焦点在 textarea 时，由用户选择合适的处理：
-        // 如果有正在输入的查询文字，优先选择当前高亮标签
-        if (e.key === "Enter" && e.target === textareaRef.current && query.trim() === "") {
-          return; // 让 textarea 处理换行
-        }
         if (filtered[idx]) { e.preventDefault(); select(filtered[idx].name); }
       }
       else if (e.key === "Escape") setOpen(false);
@@ -127,20 +130,32 @@ export default function TagPicker({ tags, textareaRef, onInsert }: Props) {
   const el = (
     <div
       ref={listRef}
-      className="fixed z-[9999] w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1"
+      className="fixed z-[9999] w-44 bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-[296px] overflow-y-auto [&::-webkit-scrollbar]:hidden"
       style={{ left: pos.x, top: pos.y }}
     >
-      {filtered.map((t, i) => (
+      {filtered.map((t, i) => {
+        const usage = tagUsage?.get(t.id) || 0;
+        const maxUsage = tagUsage ? Math.max(...tagUsage.values(), 1) : 1;
+        const ratio = usage / maxUsage;
+        // 最常用→红，少用→绿
+        const barColor = usage > 0 ? `rgb(${60 + Math.round(ratio * 160)}, ${200 - Math.round(ratio * 140)}, 60)` : "transparent";
+        return (
         <button
           key={t.id}
           type="button"
+          data-idx={i}
           onMouseDown={e => { e.preventDefault(); select(t.name); }}
           className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-blue-50 ${i===idx?"bg-blue-50":""}`}
         >
           <span className="w-3 h-3 rounded-full shrink-0" style={{background:t.color}}/>
-          <span>#{t.name}</span>
+          <span className="flex-1 truncate">#{t.name}</span>
+          {usage > 0 && (
+            <div className="relative h-4 w-1.5 rounded-sm bg-gray-100 dark:bg-slate-700 overflow-hidden shrink-0">
+              <div className="absolute bottom-0 left-0 w-full transition-all" style={{ height: `${Math.max(4, ratio * 100)}%`, backgroundColor: barColor }} />
+            </div>
+          )}
         </button>
-      ))}
+      );})}
     </div>
   );
 
