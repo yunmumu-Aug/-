@@ -111,19 +111,19 @@ export default function Home() {
     if (!user || tags.length === 0) return;
     const monthStart = df(startOfMonth(new Date()), "yyyy-MM-dd");
     const monthEnd = df(endOfMonth(new Date()), "yyyy-MM-dd");
-    supabase.from("diaries").select("id").eq("user_id", user.id)
-      .gte("date", monthStart).lte("date", monthEnd)
-      .then(({ data: diaries }) => {
+    (async () => {
+      try {
+        const { data: diaries } = await supabase.from("diaries").select("id").eq("user_id", user.id)
+          .gte("date", monthStart).lte("date", monthEnd);
         if (!diaries || diaries.length === 0) { setTagUsage(new Map()); return; }
         const ids = diaries.map(d => d.id);
-        return supabase.from("diary_tags").select("tag_id").in("diary_id", ids)
-          .then(({ data }) => {
-            const counts = new Map<string, number>();
-            (data || []).forEach(dt => counts.set(dt.tag_id, (counts.get(dt.tag_id) || 0) + 1));
-            setTagUsage(counts);
-          });
-      }).catch(() => {});
-  }, [user, tags]);
+        const { data } = await supabase.from("diary_tags").select("tag_id").in("diary_id", ids);
+        const counts = new Map<string, number>();
+        (data || []).forEach(dt => counts.set(dt.tag_id, (counts.get(dt.tag_id) || 0) + 1));
+        setTagUsage(counts);
+      } catch {}
+    })();
+  }, [user, tags, getDiaries, viewMonth]);
 
   const sortedTags = useMemo(() => {
     return [...tags].sort((a, b) => (tagUsage.get(b.id) || 0) - (tagUsage.get(a.id) || 0));

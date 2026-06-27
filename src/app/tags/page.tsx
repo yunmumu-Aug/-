@@ -255,18 +255,14 @@ export default function TagsPage() {
   // 加载标签使用次数排名
   useEffect(() => {
     if (!user || tags.length === 0) return;
-    supabase
-      .from("diary_tags")
-      .select("tag_id")
-      .in("tag_id", tags.map(t => t.id))
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const { data } = await supabase.from("diary_tags").select("tag_id").in("tag_id", tags.map(t => t.id));
         const counts = new Map<string, number>();
-        (data || []).forEach(dt => {
-          counts.set(dt.tag_id, (counts.get(dt.tag_id) || 0) + 1);
-        });
+        (data || []).forEach(dt => { counts.set(dt.tag_id, (counts.get(dt.tag_id) || 0) + 1); });
         setTagUsage(counts);
-      })
-      .catch(() => {});
+      } catch {}
+    })();
   }, [user, tags]);
 
 

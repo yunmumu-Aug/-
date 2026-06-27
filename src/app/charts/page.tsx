@@ -202,7 +202,8 @@ function BarBlock({ title, data, color }: { title: string; data: { name: string;
           <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
           <XAxis dataKey="name" tick={{ fontSize: 11 }} />
           <YAxis tick={{ fontSize: 10 }} width={28} />
-          <Tooltip formatter={(val: number) => {
+          <Tooltip formatter={(val: any) => {
+            if (val == null) return ["", ""];
             if (dataKey === "hours") {
               const h = Math.floor(val);
               const m = Math.round((val % 1) * 60);
@@ -235,7 +236,8 @@ function LineBlock({ title, data, color }: { title: string; data: { name: string
           <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
           <XAxis dataKey="name" tick={{ fontSize: 11 }} />
           <YAxis tick={{ fontSize: 10 }} width={28} />
-          <Tooltip formatter={(val: number) => {
+          <Tooltip formatter={(val: any) => {
+            if (val == null) return ["", ""];
             if (title.includes("睡眠")) {
               const h = Math.floor(val);
               const m = Math.round((val % 1) * 60);
