@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
+import InstallPrompt from "@/components/install-prompt";
 
 function getInitials(email: string): string {
   return email.charAt(0).toUpperCase();
@@ -178,6 +179,11 @@ export default function SettingsPage() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* ---- PWA Install ---- */}
+      <div className="mb-5">
+        <InstallPrompt />
       </div>
 
       {/* ---- Sign Out ---- */}
