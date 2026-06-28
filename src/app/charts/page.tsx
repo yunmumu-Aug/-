@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useTagFilter } from "@/hooks/use-tag-filter";
 import { useChartData } from "@/hooks/use-charts";
 import { getWeekRange, getMonthRange } from "@/lib/diary-utils";
-import { generateHeatmapData } from "@/lib/chart-utils";
+import { generateHeatmapData, aggregateTagStats } from "@/lib/chart-utils";
 import { format as formatDateFn, startOfYear, endOfYear, getISOWeek, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays } from "date-fns";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
@@ -635,6 +635,18 @@ export default function ChartsPage() {
 
   const { diaries, tagStats, sleepData, summary, loading } = useChartData(start, end);
 
+  // 针对 "今天" 视图：tagStats 只算今天的日记（排除为了取入睡时间而多查的前一天）
+  const effectiveTagStats = useMemo(() => {
+    if (range !== "today") return tagStats;
+    const todayDiaryForStats = diaries.filter(d => d.date === displayLabel);
+    return aggregateTagStats(todayDiaryForStats, []);
+  }, [range, diaries, displayLabel, tagStats]);
+
+  const effectiveSleepData = useMemo(() => {
+    if (range !== "today") return sleepData;
+    return sleepData.filter(s => s.date === displayLabel);
+  }, [range, sleepData, displayLabel]);
+
   // 自动选中第一天的日记（用于时间轴）
   useEffect(() => {
     if (diaries.length > 0 && !diaries.find(d => d.date === selectedDay)) {
@@ -858,7 +870,7 @@ export default function ChartsPage() {
                 return d.date === formatDateFn(prev, "yyyy-MM-dd");
               })} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <PieBlock title="今日标签占比" data={tagStatToPieData(tagStats)} />
+                <PieBlock title="今日标签占比" data={tagStatToPieData(effectiveTagStats)} />
                 {summary && (
                   <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
                     <h3 className="text-sm font-medium mb-3">📋 今日概况</h3>
