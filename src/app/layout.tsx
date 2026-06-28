@@ -10,10 +10,13 @@ export const viewport: Viewport = {
   themeColor: "#5B8DEF",
 };
 
+// basePath 需与 next.config.ts 保持一致
+const basePath = process.env.NODE_ENV === "production" ? "/-" : "";
+
 export const metadata: Metadata = {
   title: "时光轴 - 日记分析",
   description: "记录生活，看见时间的形状",
-  manifest: "/manifest.json",
+  manifest: `${basePath}/manifest.json`,
   appleWebApp: {
     capable: true,
     title: "时光轴",
@@ -21,8 +24,8 @@ export const metadata: Metadata = {
   },
   icons: {
     apple: [
-      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512x512.png", sizes: "512x512", type: "image/png" },
+      { url: `${basePath}/icon-192x192.png`, sizes: "192x192", type: "image/png" },
+      { url: `${basePath}/icon-512x512.png`, sizes: "512x512", type: "image/png" },
     ],
   },
 };
@@ -43,7 +46,7 @@ export default function RootLayout({
             __html: `
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("/sw.js").then(
+    navigator.serviceWorker.register("${basePath}/sw.js").then(
       function (reg) {
         console.log("📦 SW registered, scope:", reg.scope);
       },
