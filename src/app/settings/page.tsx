@@ -59,7 +59,7 @@ export default function SettingsPage() {
       <h1 className="hidden lg:block text-2xl font-semibold mb-6">⚙️ 设置</h1>
 
       {/* ---- Profile Card ---- */}
-      <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-6 mb-5">
+      <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-6 mb-5">
         <div className="flex items-center gap-4">
           {/* Avatar */}
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-2xl font-semibold shrink-0 shadow-sm">
@@ -124,7 +124,7 @@ export default function SettingsPage() {
       {/* ---- Middle Section ---- */}
       <div className="space-y-3 mb-5">
         {/* Privacy / Encryption info */}
-        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
+        <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
           <div className="flex items-center gap-3">
             <span className="text-xl">🔐</span>
             <div>
@@ -137,7 +137,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Sync status */}
-        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
+        <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
           <div className="flex items-center gap-3">
             <span className="text-xl">☁️</span>
             <div>
@@ -153,7 +153,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Theme toggle */}
-        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
+        <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="text-xl">{theme === "dark" ? "🌙" : "☀️"}</span>

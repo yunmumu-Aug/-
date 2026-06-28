@@ -1,11 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import ClientLayout from "@/components/layout/client-layout";
+import Script from "next/script";
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: "#5B8DEF",
 };
 
 export const metadata: Metadata = {
@@ -17,6 +19,12 @@ export const metadata: Metadata = {
     title: "时光轴",
     statusBarStyle: "default",
   },
+  icons: {
+    apple: [
+      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -26,8 +34,28 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN" className="h-full antialiased">
-      <body className="min-h-full bg-gray-100 dark:bg-slate-900 text-gray-800 dark:text-slate-200 overflow-x-hidden">
+      <body className="min-h-full bg-bg-main dark:bg-slate-900 text-text-primary dark:text-slate-200 overflow-x-hidden">
         <ClientLayout>{children}</ClientLayout>
+        <Script
+          id="register-sw"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("/sw.js").then(
+      function (reg) {
+        console.log("📦 SW registered, scope:", reg.scope);
+      },
+      function (err) {
+        console.warn("⚠️ SW registration failed:", err);
+      }
+    );
+  });
+}
+`,
+          }}
+        />
       </body>
     </html>
   );

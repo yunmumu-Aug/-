@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { useTagFilter } from "@/hooks/use-tag-filter";
 import { useDiary, useTags } from "@/hooks/use-diary";
 import { parseDiaryTags } from "@/lib/tag-parser";
 import TagPicker from "@/components/diary/tag-picker";
@@ -42,7 +43,7 @@ function MiniCalendar({ diaryDate, viewMonth, setViewMonth, diaryMap, onSelect }
     return rows;
   }, [viewMonth]);
 
-  return (<div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 p-4">
+  return (<div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 p-4">
     <div className="flex items-center justify-between mb-3">
       <button onClick={() => setViewMonth(subMonths(viewMonth, 1))} className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-slate-300">◀</button>
       <span className="text-xs font-semibold text-gray-500 dark:text-slate-400">{df(viewMonth, "yyyy年 M月", { locale: zhCN })}</span>
@@ -80,6 +81,7 @@ export default function Home() {
   const { saveDiary, getDiary, getDiaries, saving } = useDiary();
   const { getTags, createTag } = useTags();
   const router = useRouter();
+  const { selectedTag, setSelectedTag } = useTagFilter();
 
   const [diaryDate, setDiaryDate] = useState(() => getTodayStr());
   const [wakeDatetime, setWakeDatetime] = useState(() => getDefaultWake());
@@ -104,6 +106,26 @@ export default function Home() {
   }, [user]);
 
   useEffect(() => { if (user) getTags().then(setTags).catch(console.error); }, [user, getTags]);
+
+  // 当有标签筛选时，查找包含该标签的日记并跳转
+  useEffect(() => {
+    if (!user || !selectedTag || tags.length === 0) return;
+    let tag = tags.find(t => t.name === selectedTag);
+    if (!tag) return;
+    (async () => {
+      const { data } = await supabase
+        .from("diary_tags")
+        .select("diary_id, diary:diaries!inner(date)")
+        .eq("tag_id", tag!.id)
+        .order("diary(date)", { ascending: false })
+        .limit(1);
+      if (data && data.length > 0) {
+        const diary = data[0] as any;
+        const date = diary.diary?.date || diary.date;
+        if (date) setDiaryDate(date);
+      }
+    })();
+  }, [user, selectedTag, tags]);
 
   // 获取本月标签使用次数并排序
   const [tagUsage, setTagUsage] = useState<Map<string, number>>(new Map());
@@ -214,7 +236,7 @@ export default function Home() {
         <aside className="hidden lg:block lg:w-60 shrink-0 space-y-4">
 
           {/* 统计 */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 p-4">
+          <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 p-4">
             <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">📊 数据统计</h3>
             <div className="space-y-2">
               {[{ label: "笔记总数", val: totalDiaries }, { label: "标签总数", val: tags.length }, { label: "本月记录", val: diaryMap.size }].map(({ label, val }) => (
@@ -230,7 +252,7 @@ export default function Home() {
           <MiniCalendar diaryDate={diaryDate} viewMonth={viewMonth} setViewMonth={setViewMonth} diaryMap={diaryMap} onSelect={setDiaryDate} />
 
           {/* 快捷标签 */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 p-4">
+          <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 p-4">
             <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">⚡ 快捷标签</h3>
             <div className="flex flex-wrap gap-1.5">
               {recentQuickTags.length > 0
@@ -250,7 +272,7 @@ export default function Home() {
         <div className="flex-1 min-w-0">
 
           {/* 手机页头 */}
-          <div className="lg:hidden mb-3 bg-white dark:bg-slate-800 px-4 py-3">
+          <div className="lg:hidden mb-3 bg-surface dark:bg-slate-800 px-4 py-3">
             <div className="flex items-center gap-2">
               <span className="text-lg">⏳</span>
               <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">时光轴 — 日记分析</span>
@@ -260,7 +282,7 @@ export default function Home() {
           {/* 手机统计 */}
           <div className="grid grid-cols-3 gap-2 mb-4 lg:hidden mx-4 sm:mx-0">
             {[{ label: "笔记总数", val: totalDiaries }, { label: "标签总数", val: tags.length }, { label: "本月记录", val: diaryMap.size }].map(({ label, val }) => (
-              <div key={label} className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700/50 text-center">
+              <div key={label} className="p-2.5 rounded-xl bg-surface dark:bg-slate-800 border border-gray-100 dark:border-slate-700/50 text-center">
                 <div className="text-base font-bold text-gray-800 dark:text-slate-100">{val || "-"}</div>
                 <div className="text-[10px] text-gray-400 dark:text-slate-500 mt-0.5">{label}</div>
               </div>
@@ -268,7 +290,7 @@ export default function Home() {
           </div>
 
           {/* 右侧白色卡片区：标题 → 标签预览 */}
-          <div className="bg-white dark:bg-slate-800 rounded-none sm:rounded-2xl border-0 sm:border sm:border-gray-100 dark:sm:border-slate-700/50 p-4 md:p-6">
+          <div className="bg-surface dark:bg-slate-800 rounded-none sm:rounded-2xl border-0 sm:border sm:border-gray-100 dark:sm:border-slate-700/50 p-4 md:p-6">
 
             {/* 标题 */}
             <div className="flex items-center justify-between mb-5">
@@ -296,7 +318,7 @@ export default function Home() {
               <div className="fixed inset-0 z-[9998] flex items-center justify-center cursor-default" onClick={() => setShowDatePicker(false)}>
                 <div className="fixed inset-0 bg-black/20 backdrop-blur-sm" />
                 <div ref={datePickerRef} onClick={e => e.stopPropagation()}
-                  className="relative z-[9999] bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-lg p-3" style={{ width: 260 }}>
+                  className="relative z-[9999] bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-lg p-3" style={{ width: 260 }}>
                   <div className="text-center py-1 text-xs font-semibold text-gray-400 dark:text-slate-500 select-none">
                     {pickerMonth.getFullYear()}-{String(pickerMonth.getMonth() + 1).padStart(2, "0")}
                   </div>
@@ -383,7 +405,8 @@ export default function Home() {
               <span className="text-[10px] text-gray-400 dark:text-slate-500 mr-1">🏷️</span>
               {parsedTags.length > 0
                 ? parsedTags.map((pt, i) => (
-                  <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border border-blue-100 dark:border-blue-900/30">
+                  <span key={i} onClick={() => setSelectedTag(pt.tagName)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border border-blue-100 dark:border-blue-900/30 cursor-pointer hover:opacity-80">
                     #{pt.tagName}{pt.timeStr && <span className="opacity-40 text-[10px]">{pt.timeStr}</span>}
                   </span>))
                 : <span className="text-[11px] text-gray-400 dark:text-slate-500">输入 # 弹出标签选择，时间词自动关联</span>}

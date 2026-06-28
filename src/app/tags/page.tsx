@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { useTagFilter } from "@/hooks/use-tag-filter";
 import { useTags } from "@/hooks/use-diary";
 import { supabase } from "@/lib/supabase";
 import type { Tag } from "@/types";
@@ -100,7 +101,7 @@ function ColorWheel({ value, onChange, onClose }: { value: string; onChange: (c:
 
   function onPointerDown(e: React.PointerEvent) {
     e.preventDefault();
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     setDragging(true);
     moveDot(e.clientX, e.clientY);
   }
@@ -108,7 +109,12 @@ function ColorWheel({ value, onChange, onClose }: { value: string; onChange: (c:
     if (!dragging) return;
     moveDot(e.clientX, e.clientY);
   }
-  function onPointerUp() {
+  function onPointerUp(e: React.PointerEvent) {
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {
+      // 指针可能在 up 前已被释放，忽略
+    }
     if (dragging) {
       const c = `#${hex}`;
       setRecentColors(prev => {
@@ -152,7 +158,7 @@ function ColorWheel({ value, onChange, onClose }: { value: string; onChange: (c:
             mask: "radial-gradient(circle at center, transparent 55%, black 56%)",
           }}
         />
-        <div className="absolute w-5 h-5 rounded-full bg-white dark:bg-slate-800 shadow-md pointer-events-none"
+        <div className="absolute w-5 h-5 rounded-full bg-surface dark:bg-slate-800 shadow-md pointer-events-none"
           style={{ left: 90, top: 90 }} />
         <div ref={dotRef}
           className="absolute w-5 h-5 rounded-full border-2 border-white shadow-md pointer-events-none"
@@ -204,6 +210,7 @@ export default function TagsPage() {
   const { user, loading: authLoading } = useAuth();
   const { getTags, createTag, batchImportTags, updateTag, deleteTag } = useTags();
   const router = useRouter();
+  const { setSelectedTag } = useTagFilter();
 
   const [tags, setTags] = useState<Tag[]>([]);
   const [tagUsage, setTagUsage] = useState<Map<string, number>>(new Map());
@@ -369,7 +376,7 @@ export default function TagsPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 pt-0 pb-6 md:py-8">
       {/* 手机页头 */}
-      <div className="lg:hidden mb-4 bg-white dark:bg-slate-800 -mx-4 px-4 py-3">
+      <div className="lg:hidden mb-4 bg-surface dark:bg-slate-800 -mx-4 px-4 py-3">
         <div className="flex items-center justify-center gap-2">
           <span className="text-lg">🏷️</span>
           <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">标签管理</span>
@@ -396,7 +403,7 @@ export default function TagsPage() {
       )}
 
       {/* 创建标签 */}
-      <section className="mb-8 p-4 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700">
+      <section className="mb-8 p-4 bg-surface dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700">
         <h2 className="text-sm font-medium mb-3">新建标签</h2>
         <div className="flex flex-col sm:flex-row gap-3">
           <input
@@ -435,7 +442,7 @@ export default function TagsPage() {
             <span className="color-picker-wrap relative inline-flex">
               <button type="button" onClick={() => setShowColorPicker(v => !v)}
                 className={`w-7 h-7 rounded-full transition-transform flex items-center justify-center ${
-                  isCustomColor || showColorPicker ? "ring-2 ring-gray-500 scale-110" : "bg-white dark:bg-slate-800 ring-1 ring-gray-300 dark:ring-slate-600"
+                  isCustomColor || showColorPicker ? "ring-2 ring-gray-500 scale-110" : "bg-surface dark:bg-slate-800 ring-1 ring-gray-300 dark:ring-slate-600"
                 }`}
                 title="自定颜色"
                 style={isCustomColor ? { backgroundColor: newColor } : {}}>
@@ -445,12 +452,12 @@ export default function TagsPage() {
                 <>
                   {/* 手机端全屏遮罩 */}
                   <div className="md:hidden fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm" onClick={() => setShowColorPicker(false)}>
-                    <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-lg p-4 w-64" onClick={e => e.stopPropagation()}>
+                    <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-lg p-4 w-64" onClick={e => e.stopPropagation()}>
                       <ColorWheel value={newColor} onChange={setNewColor} onClose={() => setShowColorPicker(false)} />
                     </div>
                   </div>
                   {/* 桌面端下拉定位 */}
-                  <div className="hidden md:block absolute left-1/2 -translate-x-1/2 top-full mt-2 z-50 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg p-3 w-56" onClick={e => e.stopPropagation()}>
+                  <div className="hidden md:block absolute left-1/2 -translate-x-1/2 top-full mt-2 z-50 bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg p-3 w-56" onClick={e => e.stopPropagation()}>
                     <ColorWheel value={newColor} onChange={setNewColor} onClose={() => setShowColorPicker(false)} />
                   </div>
                 </>
@@ -468,7 +475,7 @@ export default function TagsPage() {
       </section>
 
       {/* 批量导入 */}
-      <section className="mb-8 p-4 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700">
+      <section className="mb-8 p-4 bg-surface dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700">
         <h2 className="text-sm font-medium mb-3">批量导入标签</h2>
         <textarea
           value={batchInput}
@@ -497,7 +504,7 @@ export default function TagsPage() {
       </section>
 
       {/* 标签使用排行 */}
-      <section className="mb-8 p-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl">
+      <section className="mb-8 p-4 bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl">
         <h2 className="text-sm font-medium mb-3">🏆 标签使用排行</h2>
         {loading ? (
           <p className="text-sm text-gray-400 dark:text-slate-500">加载中...</p>
@@ -509,7 +516,8 @@ export default function TagsPage() {
               const maxCount = Math.max(1, ...sortedTags.slice(0, 10).map(t => tagUsage.get(t.id) || 0));
               const count = tagUsage.get(tag.id) || 0;
               return (
-              <div key={tag.id} className="flex items-center gap-2 text-sm">
+              <div key={tag.id} className="flex items-center gap-2 text-sm cursor-pointer hover:opacity-80"
+                onClick={() => { setSelectedTag(tag.name); router.push("/"); }}>
                 <span className={`w-5 text-right text-xs font-bold shrink-0 ${i < 3 ? "text-blue-500" : "text-gray-400 dark:text-slate-500"}`}>
                   {i + 1}
                 </span>
@@ -545,8 +553,9 @@ export default function TagsPage() {
             {sortedTags.map((tag) => (
               <div
                 key={tag.id}
-                className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700
-                  rounded-lg hover:shadow-sm transition-shadow"
+                className="flex items-center justify-between p-3 bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700
+                  rounded-lg hover:shadow-sm transition-shadow cursor-pointer"
+                onClick={() => { setSelectedTag(tag.name); router.push("/"); }}
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <span
@@ -557,7 +566,7 @@ export default function TagsPage() {
                   <span className="text-[10px] text-gray-400 dark:text-slate-400 ml-auto">{tagUsage.get(tag.id) || 0}次</span>
                 </div>
                 <button
-                  onClick={() => handleDelete(tag.id)}
+                  onClick={(e) => { e.stopPropagation(); handleDelete(tag.id); }}
                   disabled={deleting === tag.id}
                   className="ml-2 text-xs text-gray-400 dark:text-slate-500 hover:text-red-500 shrink-0
                     disabled:opacity-30 transition-colors"

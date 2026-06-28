@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { useTagFilter } from "@/hooks/use-tag-filter";
 import { supabase } from "@/lib/supabase";
 import {
   format as formatDateFn,
@@ -28,6 +29,7 @@ export default function CalendarPage() {
   const [bottomMonth, setBottomMonth] = useState(new Date().getMonth());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { setSelectedTag } = useTagFilter();
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentMonthRef = useRef<HTMLDivElement>(null);
 
@@ -171,7 +173,7 @@ export default function CalendarPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 pt-0 pb-6 md:py-8">
       {/* 手机页头 */}
-      <div className="lg:hidden mb-4 bg-white dark:bg-slate-800 -mx-4 px-4 py-3">
+      <div className="lg:hidden mb-4 bg-surface dark:bg-slate-800 -mx-4 px-4 py-3">
         <div className="flex items-center justify-center">
           <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">日历</span>
         </div>
@@ -180,7 +182,7 @@ export default function CalendarPage() {
       {error && <div className="mb-4 px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-500 text-sm rounded-xl">{error}</div>}
 
       {/* ═══ 热力图 + 年份导航 ═══ */}
-      <div className="bg-white dark:bg-slate-800 rounded-none sm:rounded-2xl border-0 sm:border sm:border-gray-100 dark:sm:border-slate-700/50 p-4 md:p-5 relative">
+      <div className="bg-surface dark:bg-slate-800 rounded-none sm:rounded-2xl border-0 sm:border sm:border-gray-100 dark:sm:border-slate-700/50 p-4 md:p-5 relative">
         {/* 加载状态（覆盖热力图区域） */}
         {loading && (
           <div className="absolute inset-0 z-10 bg-white/80 dark:bg-slate-800/80 rounded-none sm:rounded-2xl flex items-center justify-center">
@@ -277,7 +279,7 @@ export default function CalendarPage() {
       <div className="mt-4 flex flex-col lg:flex-row gap-4">
         {/* 左侧：大月历/周历 */}
         <div className="lg:w-72 shrink-0">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 p-3 md:p-4">
+          <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 p-3 md:p-4">
             {/* 手机端：周导航 + 当前周 */}
             <div className="lg:hidden">
               <div className="flex items-center justify-between mb-3">
@@ -395,7 +397,7 @@ export default function CalendarPage() {
         {/* 右侧：日记预览 */}
         <div className="flex-1 min-w-0">
           {selectedDate ? (
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 p-4 md:p-5">
+            <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 p-4 md:p-5">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-sm font-semibold text-gray-700 dark:text-slate-200">
                   {formatDateFn(selectedDate, "yyyy年 M月d日 EEEE", { locale: zhCN })}
@@ -421,8 +423,9 @@ export default function CalendarPage() {
                     <div className="flex flex-wrap gap-1.5">
                       {previewDiary.tags.map((t) => (
                         <span key={t.id}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
-                          style={{ backgroundColor: (t.tag?.color || "#3B82F6") + "20", color: t.tag?.color || "#3B82F6" }}>
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs cursor-pointer hover:opacity-80"
+                          style={{ backgroundColor: (t.tag?.color || "#3B82F6") + "20", color: t.tag?.color || "#3B82F6" }}
+                          onClick={() => { setSelectedTag(t.tag?.name || null); router.push("/"); }}>
                           #{t.tag?.name || "?"} {t.time_label && <span className="opacity-60">{t.time_label}</span>}
                         </span>
                       ))}

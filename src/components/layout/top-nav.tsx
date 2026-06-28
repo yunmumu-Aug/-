@@ -26,7 +26,7 @@ export default function TopNav() {
   const initials = getInitials(displayName);
 
   return (
-    <header className="hidden md:flex items-center justify-center h-16 px-6 bg-white dark:bg-slate-900 shadow-sm border-b border-gray-200 dark:border-slate-700 sticky top-0 z-30">
+    <header className="hidden md:flex items-center justify-center h-16 px-6 bg-surface dark:bg-slate-900 shadow-sm border-b border-gray-200 dark:border-slate-700 sticky top-0 z-30">
       <div className="flex items-center gap-8 w-full max-w-5xl">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 shrink-0">

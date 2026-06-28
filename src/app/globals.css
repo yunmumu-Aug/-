@@ -2,6 +2,17 @@
 
 @import "tailwindcss";
 
+@theme {
+  --color-bg-main: #F7F8FC;
+  --color-surface: #FCFCFD;
+  --color-brand: #5B8DEF;
+  --color-success: #5FC9A6;
+  --color-warning: #F5A524;
+  --color-danger: #EF5350;
+  --color-text-primary: #202531;
+  --color-text-secondary: #6B7280;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
     "Microsoft YaHei", sans-serif;

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { useTagFilter } from "@/hooks/use-tag-filter";
 import { useChartData } from "@/hooks/use-charts";
 import { getWeekRange, getMonthRange } from "@/lib/diary-utils";
 import { generateHeatmapData } from "@/lib/chart-utils";
@@ -52,12 +53,15 @@ function sleepToBarData(sleepData: { date: string; durationHours: number | null 
 
 /** Horizontal bar chart for rankings */
 function HorizontalBar({ data }: { data: TagStat[] }) {
+  const router = useRouter();
+  const { setSelectedTag } = useTagFilter();
   const top = data.slice(0, 8);
   return (
     <div className="space-y-2">
       {top.length === 0 && <p className="text-sm text-gray-400 dark:text-slate-500">暂无数据</p>}
       {top.map((s, i) => (
-        <div key={s.tagId} className="flex items-center gap-2 text-sm">
+        <div key={s.tagId} className="flex items-center gap-2 text-sm cursor-pointer hover:opacity-80"
+          onClick={() => { setSelectedTag(s.tagName); router.push("/"); }}>
           <span className="w-4 text-right text-xs text-gray-400 dark:text-slate-500">{i + 1}</span>
           <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} />
           <span className="w-22 truncate">{s.tagName}</span>
@@ -149,6 +153,8 @@ function SummaryCard({ summary, todayDiary }: { summary: any; todayDiary?: any }
 
 /** Pie wrapper */
 function PieBlock({ title, data }: { title: string; data: { name: string; value: number; color: string }[] }) {
+  const router = useRouter();
+  const { setSelectedTag } = useTagFilter();
   if (data.length === 0) return <EmptyBlock title={title} />;
   const RADIAN = Math.PI / 180;
   const renderLabel = ({ cx, cy, midAngle, outerRadius, percent, index }: any) => {
@@ -163,18 +169,16 @@ function PieBlock({ title, data }: { title: string; data: { name: string; value:
     const textAnchor = isRight ? "start" : "end";
     const d = data[index];
     if (!d || percent < 0.03) return null;
-    return (
-      <g>
-        <line x1={sx} y1={sy} x2={x} y2={y} stroke={d.color} strokeWidth={1.2} strokeOpacity={0.5} />
-        <line x1={x} y1={y} x2={ex} y2={y} stroke={d.color} strokeWidth={1.2} strokeOpacity={0.5} />
-        <text x={textX} y={y} textAnchor={textAnchor} fill={d.color} fontSize={12} fontWeight={600} dominantBaseline="central">
-          {d.name} {d.value}次
-        </text>
-      </g>
-    );
+    return (<g style={{ cursor: "pointer" }} onClick={() => { setSelectedTag(d.name); router.push("/"); }}>
+      <line x1={sx} y1={sy} x2={x} y2={y} stroke={d.color} strokeWidth={1.2} strokeOpacity={0.5} />
+      <line x1={x} y1={y} x2={ex} y2={y} stroke={d.color} strokeWidth={1.2} strokeOpacity={0.5} />
+      <text x={textX} y={y} textAnchor={textAnchor} fill={d.color} fontSize={12} fontWeight={600} dominantBaseline="central">
+        {d.name} {d.value}次
+      </text>
+    </g>);
   };
   return (
-    <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
+    <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
       <h3 className="text-sm font-medium mb-2">{title}</h3>
       <ResponsiveContainer width="100%" height={220}>
         <PieChart>
@@ -195,7 +199,7 @@ function BarBlock({ title, data, color }: { title: string; data: { name: string;
   if (data.length === 0) return <EmptyBlock title={title} />;
   const dataKey = data[0] && "hours" in data[0] ? "hours" : "value";
   return (
-    <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
+    <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
       <h3 className="text-sm font-medium mb-2">{title}</h3>
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data} margin={{ left: -8, right: 8, top: 4, bottom: 4 }}>
@@ -229,7 +233,7 @@ function LineBlock({ title, data, color }: { title: string; data: { name: string
   const c = color || "#3B82F6";
   if (data.length === 0) return <EmptyBlock title={title} />;
   return (
-    <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
+    <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
       <h3 className="text-sm font-medium mb-2">{title}</h3>
       <ResponsiveContainer width="100%" height={200}>
         <LineChart data={data} margin={{ left: -8, right: 8, top: 4, bottom: 4 }}>
@@ -254,7 +258,7 @@ function LineBlock({ title, data, color }: { title: string; data: { name: string
 
 function EmptyBlock({ title }: { title: string }) {
   return (
-    <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4 flex items-center justify-center h-[200px]">
+    <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4 flex items-center justify-center h-[200px]">
       <p className="text-sm text-gray-400 dark:text-slate-500">{title} — 暂无数据</p>
     </div>
   );
@@ -358,7 +362,7 @@ function Timeline24h({ diary, prevDiary }: { diary: any; prevDiary?: any }) {
   }
 
   return (
-    <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4 overflow-x-auto">
+    <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4 overflow-x-auto">
       <h3 className="text-sm font-medium mb-3">🕐 {diary.date} 24小时时间轴</h3>
       <div className="flex">
         <div className="flex-1 min-w-0">
@@ -492,7 +496,7 @@ function YearHeatmap({ diaries, year }: { diaries: any[]; year: number }) {
   });
 
   return (
-    <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
+    <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-medium">🗓️ {year}年 活跃热力图</h3>
         <button onClick={() => setExpanded(!expanded)}
@@ -785,7 +789,7 @@ export default function ChartsPage() {
   return (
     <div className="w-full max-w-full md:max-w-6xl mx-auto px-4 pt-0 pb-6 md:py-8 overflow-x-hidden">
       {/* 手机页头 */}
-      <div className="lg:hidden mb-3 bg-white dark:bg-slate-800 -mx-4 px-4 py-3">
+      <div className="lg:hidden mb-3 bg-surface dark:bg-slate-800 -mx-4 px-4 py-3">
         <div className="flex items-center justify-center gap-2">
           <span className="text-lg">📊</span>
           <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">图表分析</span>
@@ -821,7 +825,7 @@ export default function ChartsPage() {
               onClick={() => { setRange(r); setDateOffset(0); setSelectedDay(getTodayStr()); }}
               className={`px-2.5 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-medium transition-colors ${
                 range === r
-                  ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
+                  ? "bg-surface dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
                   : "text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200"
               }`}
             >
@@ -856,7 +860,7 @@ export default function ChartsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <PieBlock title="今日标签占比" data={tagStatToPieData(tagStats)} />
                 {summary && (
-                  <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
+                  <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
                     <h3 className="text-sm font-medium mb-3">📋 今日概况</h3>
                     <SummaryCard summary={summary} todayDiary={todayDiary} />
                   </div>
@@ -906,12 +910,12 @@ export default function ChartsPage() {
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
+                <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
                   <h3 className="text-sm font-medium mb-3">🏆 本周活动排行</h3>
                   <HorizontalBar data={tagStats} />
                 </div>
                 {summary && (
-                  <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
+                  <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
                     <h3 className="text-sm font-medium mb-3">📋 本周总结</h3>
                     <SummaryCard summary={summary} />
                   </div>
@@ -952,12 +956,12 @@ export default function ChartsPage() {
               {monthWakeBars.length > 0 && <BarBlock title="每日起床时间" data={monthWakeBars} color="#10B981" />}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
+                <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
                   <h3 className="text-sm font-medium mb-3">🏆 本月活动排行</h3>
                   <HorizontalBar data={tagStats} />
                 </div>
                 {summary && (
-                  <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
+                  <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
                     <h3 className="text-sm font-medium mb-3">📋 月度总结</h3>
                     <SummaryCard summary={summary} />
                   </div>
@@ -981,12 +985,12 @@ export default function ChartsPage() {
               {yearWakeBars.length > 0 && <BarBlock title="各月平均起床时间" data={yearWakeBars} color="#10B981" />}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
+                <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
                   <h3 className="text-sm font-medium mb-3">🏆 年度活动排行</h3>
                   <HorizontalBar data={tagStats} />
                 </div>
                 {summary && (
-                  <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
+                  <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
                     <h3 className="text-sm font-medium mb-3">🏅 年度总结</h3>
                     <SummaryCard summary={summary} />
                   </div>
