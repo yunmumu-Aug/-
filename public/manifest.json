@@ -5,7 +5,6 @@
   "start_url": "/-/",
   "scope": "/-/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#F7F8FC",
   "theme_color": "#5B8DEF",
   "orientation": "portrait-primary",

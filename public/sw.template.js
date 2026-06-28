@@ -1,130 +1,115 @@
 /**
- * Service Worker - 时光轴 PWA
+ * Service Worker — 时光轴 PWA
  *
- * 使用 Workbox 构建的离线优先 Service Worker。
- * - precache: 由 workbox-build 注入静态资源清单（通过 __WB_MANIFEST）
- * - stale-while-revalidate: 导航请求（HTML 页面）
- * - cache-first: _next/static 等带 hash 的资源
- * - network-only: Supabase API 请求
- *
- * 注意：此文件是模板，__WB_MANIFEST 在构建时由 build-sw.mjs 替换为实际文件列表。
+ * 自包含，无外部 CDN 依赖。预缓存清单由构建脚本注入。
+ * 不使用 workbox，纯原生 Cache + Fetch API。
  */
+self.__WB_MANIFEST = [];
 
-importScripts(
-  "https://storage.googleapis.com/workbox-cdn/releases/7.3.0/workbox-sw.js"
-);
+// ========== 安装：预缓存所有静态资源 ==========
 
-workbox.setConfig({ debug: false });
+const PRECACHE = "precache-v1";
+const RUNTIME = "runtime-v1";
 
-const { precacheAndRoute, cleanupOutdatedCaches } = workbox.precaching;
-const { registerRoute, setDefaultHandler, NavigationRoute } = workbox.routing;
-const {
-  StaleWhileRevalidate,
-  CacheFirst,
-  NetworkFirst,
-  NetworkOnly,
-} = workbox.strategies;
-const { CacheableResponsePlugin } = workbox.cacheableResponse;
-const { ExpirationPlugin } = workbox.expiration;
-const { skipWaiting, clientsClaim } = workbox.core;
-
-// ========== 安装与激活 ==========
-
-skipWaiting();
-clientsClaim();
-
-// ========== 预缓存（注入清单在构建时生成） ==========
-
-precacheAndRoute(self.__WB_MANIFEST);
-cleanupOutdatedCaches();
-
-// ========== 运行时缓存策略 ==========
-
-// 1. 带 hash 的静态资源（JS/CSS/图片）：缓存优先
-registerRoute(
-  /\/_next\/static\/.+/,
-  new CacheFirst({
-    cacheName: "next-static",
-    plugins: [
-      new CacheableResponsePlugin({ statuses: [0, 200] }),
-      new ExpirationPlugin({
-        maxEntries: 100,
-        maxAgeSeconds: 30 * 24 * 60 * 60, // 30 天
-      }),
-    ],
-  })
-);
-
-// 2. 字体和图标文件：缓存优先
-registerRoute(
-  /\.(?:png|jpg|jpeg|svg|gif|ico|woff2?|eot|ttf|otf)$/,
-  new CacheFirst({
-    cacheName: "assets",
-    plugins: [
-      new CacheableResponsePlugin({ statuses: [0, 200] }),
-      new ExpirationPlugin({
-        maxEntries: 50,
-        maxAgeSeconds: 30 * 24 * 60 * 60,
-      }),
-    ],
-  })
-);
-
-// 3. manifest.json 和静态路由资源：缓存优先
-registerRoute(
-  /\.(?:json)$/,
-  new CacheFirst({
-    cacheName: "static-json",
-    plugins: [
-      new CacheableResponsePlugin({ statuses: [0, 200] }),
-      new ExpirationPlugin({
-        maxEntries: 20,
-        maxAgeSeconds: 24 * 60 * 60, // 1 天
-      }),
-    ],
-  })
-);
-
-// 4. Supabase API 请求（含认证）：网络优先
-registerRoute(
-  /.*supabase\.co\/rest\/.*/,
-  new NetworkFirst({
-    cacheName: "supabase-api",
-    plugins: [
-      new CacheableResponsePlugin({ statuses: [0, 200] }),
-      new ExpirationPlugin({
-        maxEntries: 100,
-        maxAgeSeconds: 5 * 60, // 5 分钟
-      }),
-    ],
-  })
-);
-
-// 5. Supabase Auth 请求：仅网络（不过期不过期）
-registerRoute(/.*supabase\.co\/auth\/.*/, new NetworkOnly());
-
-// 6. 导航请求（HTML 页面）：StaleWhileRevalidate 保证快速加载
-//    优先展示缓存内容，后台更新缓存
-const navigationHandler = new StaleWhileRevalidate({
-  cacheName: "pages",
-  plugins: [
-    new CacheableResponsePlugin({ statuses: [0, 200] }),
-  ],
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches
+      .open(PRECACHE)
+      .then((cache) => cache.addAll(self.__WB_MANIFEST))
+      .then(() => self.skipWaiting())
+  );
 });
 
-const navigationRoute = new NavigationRoute(navigationHandler);
-registerRoute(navigationRoute);
+self.addEventListener("activate", (event) => {
+  const validCaches = [PRECACHE, RUNTIME];
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(keys.map((key) => (validCaches.includes(key) ? null : caches.delete(key))))
+      )
+      .then(() => self.clients.claim())
+  );
+});
 
-// ========== 离线回退 ==========
+// ========== 请求拦截 ==========
 
-// 如果导航请求失败（离线），返回缓存的首页
 self.addEventListener("fetch", (event) => {
-  if (
-    event.request.mode === "navigate" &&
-    !navigator.onLine
-  ) {
-    event.respondWith(
-      caches.match("/").then((cached) => cached || fetch(event.request))
-    );
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // 仅处理同源请求
+  if (url.origin !== self.location.origin) return;
+
+  const path = url.pathname;
+
+  // 1. Supabase API → 仅网络
+  if (path.includes("supabase")) {
+    return;
+  }
+
+  // 2. _next/static → 缓存优先（带 hash，永不更新）
+  if (path.includes("/_next/static/")) {
+    event.respondWith(cacheFirst(request, PRECACHE));
+    return;
+  }
+
+  // 3. 静态资源（图片、字体等）→ 缓存优先
+  if (/\.(png|jpg|jpeg|svg|gif|ico|woff2?|eot|ttf|otf)$/i.test(path)) {
+    event.respondWith(cacheFirst(request));
+    return;
+  }
+
+  // 4. manifest.json → 缓存优先
+  if (path.endsWith("/manifest.json")) {
+    event.respondWith(cacheFirst(request));
+    return;
+  }
+
+  // 5. HTML 导航 → 缓存优先（有缓存展示缓存，否则网络获取）
+  if (request.mode === "navigate") {
+    event.respondWith(navigateHandler(request));
+    return;
   }
 });
+
+// ========== 缓存策略 ==========
+
+async function cacheFirst(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(RUNTIME);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    return new Response("Offline", { status: 503 });
+  }
+}
+
+async function navigateHandler(request) {
+  // 先看预缓存
+  const cached = await caches.match(request);
+  if (cached) return cached;
+
+  // 再看运行时缓存
+  const runtimeCached = await caches.match(request, { cacheName: RUNTIME });
+  if (runtimeCached) return runtimeCached;
+
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(RUNTIME);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    // 离线 fallback → 返回缓存的首页
+    const fallback = await caches.match("/-/");
+    if (fallback) return fallback;
+    return new Response("Offline", { status: 503 });
+  }
+}

@@ -1,66 +1,102 @@
 /**
- * 构建时注入 Service Worker 预缓存清单（workbox-build）
+ * 构建时注入 Service Worker 预缓存清单
  *
- * 工作流程:
- *   1. next build 输出静态文件到 out/
- *   2. 扫描 out/ 下所有客户端资源
- *   3. 将文件列表注入到 sw.template.js → public/sw.js
- *   4. public/ 下的 sw.js 在 next build 时自动被复制到 out/
+ * 不依赖 workbox-build，直接扫描 out/ 生成文件列表。
+ * 然后注入到 sw.template.js → public/sw.js
  *
  * 用法: node scripts/build-sw.mjs
  */
-import { injectManifest } from "workbox-build";
-import { resolve, dirname } from "path";
+import { readFileSync, writeFileSync, existsSync, cpSync, statSync, readdirSync } from "fs";
+import { resolve, dirname, join, relative } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
+const OUT = resolve(ROOT, "out");
+const SRC_TEMPLATE = resolve(ROOT, "public", "sw.template.js");
+const DEST_SW = resolve(ROOT, "public", "sw.js");
+const DEST_OUT_SW = resolve(ROOT, "out", "sw.js");
 
-async function main() {
-  console.log("🔧 生成 Service Worker（注入预缓存清单）...");
+// 不需要预缓存的文件
+const IGNORE = new Set([
+  "sw.js",
+  "sw.template.js",
+  "404.html",
+  "_not-found.html",
+  "workbox-*.js",
+]);
 
-  const result = await injectManifest({
-    // 扫描目录：Next.js 静态导出输出
-    globDirectory: resolve(ROOT, "out"),
+// 需要预缓存的文件扩展名
+const CACHE_EXTS = new Set([
+  ".html",
+  ".js",
+  ".css",
+  ".png",
+  ".svg",
+  ".ico",
+  ".json",
+  ".woff2",
+  ".woff",
+  ".ttf",
+  ".eot",
+]);
 
-    // 包含所有构建产物（HTML/JS/CSS 由 Next 管理，图片等静态资源）
-    globPatterns: [
-      "**/*.{html,js,css,png,svg,ico,json,woff2,woff,ttf,eot}",
-    ],
+function walkDir(dir, baseDir) {
+  const files = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...walkDir(fullPath, baseDir));
+    } else if (entry.isFile()) {
+      const relPath = relative(baseDir, fullPath).replace(/\\/g, "/");
+      if (IGNORE.has(relPath) || IGNORE.has(entry.name)) continue;
+      const ext = relPath.substring(relPath.lastIndexOf(".")).toLowerCase();
+      if (CACHE_EXTS.has(ext)) {
+        files.push(relPath);
+      }
+    }
+  }
+  return files.sort();
+}
 
-    // 排除 service worker 本身（避免循环引用）
-    globIgnores: ["sw.js", "sw.template.js", "workbox-*.js"],
+function main() {
+  if (!existsSync(OUT)) {
+    console.error("❌ 找不到 out/ 目录。请先运行 next build。");
+    process.exit(1);
+  }
 
-    // 模板文件：包含 __WB_MANIFEST 占位符
-    swSrc: resolve(ROOT, "public", "sw.template.js"),
+  console.log("🔧 扫描静态文件...");
+  const files = walkDir(OUT, OUT);
+  console.log(`  📄 发现 ${files.length} 个文件`);
 
-    // 输出文件：生成到 public/ 下，next build 会自动复制到 out/
-    swDest: resolve(ROOT, "public", "sw.js"),
+  // 最大文件数打印
+  if (files.length > 0) {
+    console.log(`  前 5 个: ${files.slice(0, 5).join(", ")}`);
+    console.log(`  后 5 个: ${files.slice(-5).join(", ")}`);
+  }
 
-    // 最大文件大小（字节）— 25MB，默认 2MB 可能不够
-    maximumFileSizeToCacheInBytes: 25 * 1024 * 1024,
-  });
+  // 生成 JS 数组字符串
+  const fileListStr = files
+    .map((f) => `"${f}"`)
+    .join(",\n  ");
 
-  console.log(`  ✅ 预缓存清单注入完成`);
-  console.log(`  📦 共 ${result.count} 个文件，总大小 ${formatBytes(result.size)}`);
+  console.log("\n🔧 注入预缓存清单到 SW...");
+  const template = readFileSync(SRC_TEMPLATE, "utf-8");
 
-  // 同时将 sw.js 复制到 out/（确保部署时存在）
-  const { cpSync } = await import("fs");
-  cpSync(
-    resolve(ROOT, "public", "sw.js"),
-    resolve(ROOT, "out", "sw.js"),
-    { force: true }
+  // 替换占位符 self.__WB_MANIFEST = [];
+  const injected = template.replace(
+    'self.__WB_MANIFEST = []',
+    `self.__WB_MANIFEST = [\n  ${fileListStr}\n]`
   );
-  console.log(`  📋 已复制到 out/sw.js`);
+
+  writeFileSync(DEST_SW, injected, "utf-8");
+  console.log(`  ✅ ${DEST_SW}`);
+
+  // 复制到 out/
+  cpSync(DEST_SW, DEST_OUT_SW, { force: true });
+  console.log(`  ✅ ${DEST_OUT_SW}`);
+
+  console.log(`\n🎉 SW 生成完成！共 ${files.length} 个文件预缓存`);
 }
 
-function formatBytes(bytes) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
-
-main().catch((err) => {
-  console.error("❌ SW 生成失败:", err);
-  process.exit(1);
-});
+main();
