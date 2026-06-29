@@ -7,7 +7,6 @@ const navItems = [
   { label: "写日记", href: "/", icon: "edit" },
   { label: "日历", href: "/calendar", icon: "calendar" },
   { label: "图表", href: "/charts", icon: "chart" },
-  { label: "标签", href: "/tags", icon: "tag" },
   { label: "设置", href: "/settings", icon: "settings" },
 ];
 

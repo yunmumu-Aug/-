@@ -30,7 +30,8 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# PWA generated service worker (built from sw.template.js by scripts/build-sw.mjs)
+# claude local memory
+.claude/memory/
 /public/sw.js
 .env*
 

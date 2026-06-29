@@ -124,6 +124,25 @@ export default function SettingsPage() {
 
       {/* ---- Middle Section ---- */}
       <div className="space-y-3 mb-5">
+        {/* Tag Management */}
+        <button
+          onClick={() => router.push("/tags")}
+          className="w-full text-left bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-xl">🏷️</span>
+            <div className="flex-1">
+              <h3 className="text-sm font-medium">标签管理</h3>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                创建、编辑和删除标签，管理颜色和预设
+              </p>
+            </div>
+            <svg className="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </div>
+        </button>
+
         {/* Privacy / Encryption info */}
         <div className="bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4">
           <div className="flex items-center gap-3">
