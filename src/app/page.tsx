@@ -129,7 +129,7 @@ function HeroCard({
   lastYearDiary: Diary | null;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-[26px] shadow-[0_16px_36px_rgba(215,220,235,0.35)] dark:shadow-[0_16px_36px_rgba(0,0,0,0.3)]"
+    <div className="relative overflow-hidden shadow-[0_16px_36px_rgba(215,220,235,0.35)] dark:shadow-[0_16px_36px_rgba(0,0,0,0.3)]"
       style={{ backgroundColor: "#edf3fd" }}>
       {/* Subtle watermark */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
@@ -403,12 +403,17 @@ export default function Home() {
           <div className="space-y-5">
             {/* Hero Card — fade in */}
             <div className="animate-[tl-in_0.4s_ease-out_both]">
-              <HeroCard
-                awakeLabel={awakeLabel}
-                streak={streak}
-                eventCount={eventCount}
-                lastYearDiary={lastYearDiary}
-              />
+              <div style={{ background: "linear-gradient(180deg, #ffffff 0%, #ffffff 38%, #f6f8fd 55%, #f0f3fb 100%)" }}
+                className="p-0.5">
+                <div className="px-3 pt-4 pb-3">
+                  <HeroCard
+                    awakeLabel={awakeLabel}
+                    streak={streak}
+                    eventCount={eventCount}
+                    lastYearDiary={lastYearDiary}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Quick Entry */}
