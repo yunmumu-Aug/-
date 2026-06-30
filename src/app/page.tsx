@@ -360,7 +360,7 @@ export default function Home() {
   if (authLoading || !user) return null;
 
   return (
-    <div className="w-full px-4 sm:px-6 md:px-8 max-w-5xl">
+    <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 md:px-8">
       {/* ---- Smooth scroll for animations ---- */}
       <style>{`
         @keyframes tl-in {
@@ -403,17 +403,12 @@ export default function Home() {
           <div className="space-y-5">
             {/* Hero Card — fade in */}
             <div className="animate-[tl-in_0.4s_ease-out_both]">
-              <div style={{ background: "linear-gradient(180deg, #ffffff 0%, #ffffff 38%, #f6f8fd 55%, #f0f3fb 100%)" }}
-                className="rounded-[26px] p-0.5">
-                <div className="px-3 pt-4 pb-3">
-                  <HeroCard
-                    awakeLabel={awakeLabel}
-                    streak={streak}
-                    eventCount={eventCount}
-                    lastYearDiary={lastYearDiary}
-                  />
-                </div>
-              </div>
+              <HeroCard
+                awakeLabel={awakeLabel}
+                streak={streak}
+                eventCount={eventCount}
+                lastYearDiary={lastYearDiary}
+              />
             </div>
 
             {/* Quick Entry */}
