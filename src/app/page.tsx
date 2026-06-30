@@ -95,7 +95,7 @@ interface TimelineEvent {
 function DashboardHeader({ displayName, dateStr }: { displayName: string; dateStr: string }) {
   return (
     <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 md:-mx-0 px-4 sm:px-6 md:px-0 py-3
-      bg-[rgba(247,248,252,0.82)] dark:bg-slate-900/80 backdrop-blur-lg border-b border-gray-100/80 dark:border-slate-700/50">
+      bg-surface dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-gray-800 dark:text-slate-100">
