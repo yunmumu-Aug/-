@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useMemo } from "react";
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTagFilter } from "@/hooks/use-tag-filter";
 import type { Diary } from "@/types";
@@ -12,7 +12,6 @@ interface TimelineProps {
 export default function Timeline({ todayDiary }: TimelineProps) {
   const router = useRouter();
   const { setSelectedTag } = useTagFilter();
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   const events = useMemo(() => {
     if (!todayDiary?.tags) return [];
@@ -56,13 +55,10 @@ export default function Timeline({ todayDiary }: TimelineProps) {
     return h;
   }, [range]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const el = document.querySelector(`[data-hour="${currentHour}"]`);
-      if (el) el.scrollIntoView({ block: "start", behavior: "auto" });
-    }, 150);
-    return () => clearTimeout(timer);
-  }, [currentHour]);
+  // 构建小时列表：从当前小时开始（当前小时为第一条），然后后续小时，最后轮转到过去小时
+  const hours: number[] = [];
+  for (let h = currentHour; h <= range.end; h++) hours.push(h);
+  for (let h = range.start; h < currentHour; h++) hours.push(h);
 
   if (!todayDiary) {
     return (
@@ -75,9 +71,6 @@ export default function Timeline({ todayDiary }: TimelineProps) {
       </div>
     );
   }
-
-  const hours: number[] = [];
-  for (let h = range.start; h <= range.end; h++) hours.push(h);
 
   return (
     <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50">
