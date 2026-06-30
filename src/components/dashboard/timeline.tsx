@@ -59,7 +59,7 @@ export default function Timeline({ todayDiary }: TimelineProps) {
   useEffect(() => {
     if (!scrollRef.current) return;
     const el = scrollRef.current.querySelector(`[data-hour="${currentHour}"]`);
-    if (el) el.scrollIntoView({ block: "center", behavior: "auto" });
+    if (el) el.scrollIntoView({ block: "start", behavior: "auto" });
   }, [currentHour]);
 
   if (!todayDiary) {
@@ -83,7 +83,8 @@ export default function Timeline({ todayDiary }: TimelineProps) {
         <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500">🕐 今天时间轴</h3>
       </div>
 
-      <div ref={scrollRef} className="py-1 relative">
+      <div ref={scrollRef} className="overflow-y-auto max-h-[600px] overscroll-contain [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="py-1 relative">
           {/* 连续连接线 */}
           <div className="absolute left-[61px] top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-slate-700" />
 
@@ -147,5 +148,6 @@ export default function Timeline({ todayDiary }: TimelineProps) {
           })}
         </div>
       </div>
+    </div>
   );
 }
