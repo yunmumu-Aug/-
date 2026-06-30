@@ -57,16 +57,10 @@ export default function Timeline({ todayDiary }: TimelineProps) {
   }, [range]);
 
   useEffect(() => {
-    if (!scrollRef.current) return;
-    // 延迟确保动画完成后滚动到位
     const timer = setTimeout(() => {
-      if (!scrollRef.current) return;
-      const el = scrollRef.current.querySelector(`[data-hour="${currentHour}"]`) as HTMLElement | null;
-      if (el) {
-        const offset = el.offsetTop - scrollRef.current.offsetTop;
-        scrollRef.current.scrollTop = offset;
-      }
-    }, 100);
+      const el = document.querySelector(`[data-hour="${currentHour}"]`);
+      if (el) el.scrollIntoView({ block: "start", behavior: "auto" });
+    }, 150);
     return () => clearTimeout(timer);
   }, [currentHour]);
 
@@ -91,7 +85,7 @@ export default function Timeline({ todayDiary }: TimelineProps) {
         <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500">🕐 今天时间轴</h3>
       </div>
 
-      <div ref={scrollRef} className="overflow-y-auto max-h-[600px] overscroll-contain [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div>
         <div className="py-1 relative">
           {/* 连续连接线 */}
           <div className="absolute left-[61px] top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-slate-700" />
