@@ -1,162 +1,240 @@
 "use client";
 
+import { useEffect, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useTagFilter } from "@/hooks/use-tag-filter";
 import type { Diary } from "@/types";
 
-/**
- * 首页时间轴组件
- *
- * 展示最近日记的时间轴卡片列表。
- * 左侧：彩色圆点 + 连接线
- * 右侧：日期 + 内容预览 + 标签
- */
+/* ================================================================
+   24 小时时间轴
 
-interface TimelineItemProps {
-  diary: Diary;
-  isLast: boolean;
-  delay: number;
+   从起床到入睡的时间范围，以当前小时为初始可见位置。
+   左侧：小时标记（00:00 ~ 23:00）
+   右侧：有事件 → 卡片展示，无事件 → 虚线加号框
+   ================================================================ */
+
+interface HourEvent {
+  hour: number;
+  minute: number;
+  timeLabel: string;
+  tagName: string;
+  tagColor: string;
+  tagId: string;
 }
 
-function TimelineItem({ diary, isLast, delay }: TimelineItemProps) {
-  const router = useRouter();
-  const { setSelectedTag } = useTagFilter();
+interface HourSlot {
+  hour: number;
+  events: HourEvent[];
+}
 
-  const contentPreview = diary.content
-    ? diary.content.slice(0, 120)
-    : "";
+/** 从日记标签中提取时间事件，按小时分组 */
+function buildHourSlots(diary: Diary | null): HourSlot[] {
+  if (!diary?.tags) return [];
 
-  const weekDay = new Date(diary.date).toLocaleDateString("zh-CN", { weekday: "short" });
-  const dateLabel = diary.date.slice(5); // MM-DD
+  const eventsByHour = new Map<number, HourEvent[]>();
 
-  return (
-    <div
-      className="flex items-stretch gap-3 animate-[tl-in_0.3s_ease-out_both] cursor-pointer group"
-      style={{ animationDelay: `${delay * 60}ms` }}
-      onClick={() => router.push("/write")}
-    >
-      {/* 左侧：圆点 + 连接线 */}
-      <div className="flex flex-col items-center shrink-0 pt-1" style={{ width: 24 }}>
-        <div className="w-3 h-3 rounded-full border-2 border-blue-400 dark:border-blue-500 bg-surface dark:bg-slate-800 shrink-0 z-10 group-hover:border-blue-500 transition-colors" />
-        {!isLast && (
-          <div className="w-0.5 flex-1 mt-1 rounded-full bg-gray-200 dark:bg-slate-700" />
-        )}
-      </div>
+  for (const t of diary.tags) {
+    if (!t.time_label) continue;
+    const parts = t.time_label.split(":");
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    if (isNaN(h)) continue;
 
-      {/* 右侧：卡片 */}
-      <div className="flex-1 mb-4 min-w-0">
-        <div
-          className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 p-4 shadow-sm
-            group-hover:shadow-md group-hover:-translate-y-0.5 transition-all duration-200"
-        >
-          {/* 日期行 */}
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-semibold text-gray-400 dark:text-slate-500 bg-gray-50 dark:bg-slate-700/50 px-2 py-0.5 rounded-md">
-              {dateLabel} {weekDay}
-            </span>
-            {diary.wake_time && (
-              <span className="text-[10px] text-gray-400 dark:text-slate-500">
-                ⏰ {diary.wake_time.split("T")[1]?.slice(0, 5)}
-              </span>
-            )}
-            {diary.sleep_time && (
-              <span className="text-[10px] text-gray-400 dark:text-slate-500">
-                🌙 {diary.sleep_time.split("T")[1]?.slice(0, 5)}
-              </span>
-            )}
-          </div>
+    if (!eventsByHour.has(h)) eventsByHour.set(h, []);
+    eventsByHour.get(h)!.push({
+      hour: h,
+      minute: isNaN(m) ? 0 : m,
+      timeLabel: t.time_label,
+      tagName: t.tag?.name || "?",
+      tagColor: t.tag?.color || "#3B82F6",
+      tagId: t.tag_id,
+    });
+  }
 
-          {/* 内容预览 */}
-          {contentPreview && (
-            <p className="text-sm text-gray-600 dark:text-slate-300 leading-relaxed line-clamp-2 mb-2">
-              {contentPreview}{diary.content.length > 120 ? "…" : ""}
-            </p>
-          )}
+  // 有事件的小时，按分钟排序
+  for (const [, events] of eventsByHour) {
+    events.sort((a, b) => a.minute - b.minute);
+  }
 
-          {/* 标签 */}
-          {diary.tags && diary.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {diary.tags.slice(0, 6).map((t) => (
-                <span
-                  key={t.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedTag(t.tag?.name || null);
-                    router.push("/write");
-                  }}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium cursor-pointer hover:opacity-80"
-                  style={{
-                    backgroundColor: (t.tag?.color || "#3B82F6") + "18",
-                    color: t.tag?.color || "#3B82F6",
-                  }}
-                >
-                  #{t.tag?.name || "?"}
-                  {t.time_label && <span className="opacity-50">{t.time_label}</span>}
-                </span>
-              ))}
-              {diary.tags.length > 6 && (
-                <span className="text-[10px] text-gray-400 dark:text-slate-500 self-center">
-                  +{diary.tags.length - 6}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  // 确定时间范围：起床~入睡，如果没有则 0~23
+  let startHour = 0;
+  let endHour = 23;
+  if (diary.wake_time) {
+    const h = parseInt(diary.wake_time.split("T")[1]?.slice(0, 2), 10);
+    if (!isNaN(h)) startHour = h;
+  }
+  if (diary.sleep_time) {
+    const h = parseInt(diary.sleep_time.split("T")[1]?.slice(0, 2), 10);
+    if (!isNaN(h)) {
+      // 跨天（入睡在凌晨）
+      endHour = h < startHour ? h + 24 : h;
+    }
+  }
+
+  // 如果入睡在凌晨（跨天），加 24 标记
+  // 为了让 Timeline 显示 0~23 内的内容，如果 endHour > 23 则折回
+  const slots: HourSlot[] = [];
+  // 限制显示范围：startHour ~ min(endHour, 23)
+  const displayEnd = Math.min(endHour, 23);
+  for (let h = startHour; h <= displayEnd; h++) {
+    slots.push({
+      hour: h,
+      events: eventsByHour.get(h) || [],
+    });
+  }
+  return slots;
 }
 
 interface TimelineProps {
-  diaries: Diary[];
-  loading?: boolean;
-  hasMore?: boolean;
-  onLoadMore?: () => void;
+  todayDiary: Diary | null;
 }
 
-export default function Timeline({ diaries, loading, hasMore, onLoadMore }: TimelineProps) {
-  if (!loading && diaries.length === 0) return null;
+export default function Timeline({ todayDiary }: TimelineProps) {
+  const router = useRouter();
+  const { setSelectedTag } = useTagFilter();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const slots = useMemo(() => buildHourSlots(todayDiary), [todayDiary]);
+
+  // 当前小时
+  const currentHour = useMemo(() => {
+    const h = new Date().getHours();
+    // 如果当前小时在时间范围外，用 startHour
+    if (slots.length > 0) {
+      const first = slots[0].hour;
+      const last = slots[slots.length - 1].hour;
+      if (h < first) return first;
+      if (h > last) return last;
+    }
+    return h;
+  }, [slots]);
+
+  // 挂载后滚动到当前小时
+  useEffect(() => {
+    if (!scrollRef.current || slots.length === 0) return;
+    const el = scrollRef.current.querySelector(`[data-hour="${currentHour}"]`);
+    if (el) {
+      el.scrollIntoView({ block: "start", behavior: "auto" });
+    }
+  }, [currentHour, slots.length]);
+
+  // 点击空白加号 → 跳转写日记
+  const handleAdd = useCallback((hour: number) => {
+    router.push("/write");
+  }, [router]);
+
+  // 没有日记也没有事件 → 提示
+  if (!todayDiary) {
+    return (
+      <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 p-6 text-center">
+        <p className="text-sm text-gray-400 dark:text-slate-500 mb-3">今天还没有记录</p>
+        <button
+          onClick={() => router.push("/write")}
+          className="px-5 py-2 bg-blue-500 text-white text-sm font-semibold rounded-xl hover:bg-blue-600 transition-colors"
+        >
+          ✍️ 开始记录今天
+        </button>
+      </div>
+    );
+  }
+
+  if (slots.length === 0) {
+    return (
+      <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 p-6 text-center">
+        <p className="text-sm text-gray-400 dark:text-slate-500">还没有带时间的事件</p>
+        <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
+          试试在日记里写 "10点#起床 14点#学习"
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 p-4">
-      <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-        <span>🕐 时间轴</span>
-        {loading && (
-          <span className="inline-block w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-        )}
-      </h3>
+    <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50">
+      <div className="sticky top-0 z-10 px-4 pt-4 pb-2 bg-surface dark:bg-slate-800 border-b border-gray-100 dark:border-slate-700/50">
+        <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500">🕐 今天时间轴</h3>
+      </div>
 
-      {diaries.length === 0 && loading && (
-        <div className="py-8 text-center">
-          <p className="text-xs text-gray-400 dark:text-slate-500">加载中...</p>
-        </div>
-      )}
+      <div ref={scrollRef} className="overflow-y-auto max-h-[600px] overscroll-contain">
+        {slots.map((slot, si) => {
+          const isCurrent = slot.hour === currentHour;
+          const isPast = slot.hour < currentHour;
 
-      {diaries.length > 0 && (
-        <>
-          {diaries.map((diary, i) => (
-            <TimelineItem
-              key={diary.id}
-              diary={diary}
-              isLast={i === diaries.length - 1 && !hasMore}
-              delay={i}
-            />
-          ))}
+          return (
+            <div
+              key={slot.hour}
+              data-hour={slot.hour}
+              className={`flex border-b border-gray-50 dark:border-slate-700/30 last:border-b-0
+                animate-[tl-in_0.3s_ease-out_both]`}
+              style={{ animationDelay: `${si * 30}ms` }}
+            >
+              {/* 左侧：小时标记 */}
+              <div className="shrink-0 w-16 pt-4 pb-3 flex flex-col items-center">
+                <span className={`text-xs font-bold leading-none ${
+                  isCurrent
+                    ? "text-blue-500 dark:text-blue-400"
+                    : isPast
+                      ? "text-gray-400 dark:text-slate-500"
+                      : "text-gray-500 dark:text-slate-400"
+                }`}>
+                  {String(slot.hour).padStart(2, "0")}:00
+                </span>
+                {isCurrent && (
+                  <span className="mt-1 w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                )}
+              </div>
 
-          {/* 加载更多 */}
-          {hasMore && (
-            <div className="text-center pt-2">
-              <button
-                onClick={onLoadMore}
-                disabled={loading}
-                className="px-4 py-1.5 text-xs text-gray-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors disabled:opacity-50"
-              >
-                {loading ? "加载中..." : "加载更多 ↑"}
-              </button>
+              {/* 右侧：事件卡片 / 加号按钮 */}
+              <div className="flex-1 min-w-0 py-3 pr-4">
+                {slot.events.length > 0 ? (
+                  <div className="space-y-2">
+                    {slot.events.map((ev, ei) => (
+                      <div
+                        key={`${ev.tagId}-${ev.timeLabel}-${ei}`}
+                        className="rounded-xl px-3.5 py-2.5 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                        style={{
+                          backgroundColor: ev.tagColor + "10",
+                          borderLeft: `3px solid ${ev.tagColor}`,
+                        }}
+                        onClick={() => router.push("/write")}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-semibold text-gray-400 dark:text-slate-500">
+                            {ev.timeLabel}
+                          </span>
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium cursor-pointer hover:opacity-80"
+                            style={{ backgroundColor: ev.tagColor + "20", color: ev.tagColor }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedTag(ev.tagName);
+                              router.push("/write");
+                            }}
+                          >
+                            #{ev.tagName}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleAdd(slot.hour)}
+                    className="w-full h-12 rounded-xl border-2 border-dashed border-gray-200 dark:border-slate-600
+                      flex items-center justify-center gap-2
+                      text-gray-300 dark:text-slate-500 hover:text-blue-400 dark:hover:text-blue-300
+                      hover:border-blue-300 dark:hover:border-blue-500
+                      transition-all duration-200 group"
+                  >
+                    <span className="text-lg font-light leading-none group-hover:scale-125 transition-transform">+</span>
+                    <span className="text-xs">{String(slot.hour).padStart(2, "0")}:00</span>
+                  </button>
+                )}
+              </div>
             </div>
-          )}
-        </>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }

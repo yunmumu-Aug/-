@@ -226,14 +226,10 @@ export default function Home() {
   const { selectedTag, setSelectedTag } = useTagFilter();
 
   const [todayDiary, setTodayDiary] = useState<Diary | null>(null);
-  const [recentDiaries, setRecentDiaries] = useState<Diary[]>([]);
   const [lastYearDiary, setLastYearDiary] = useState<Diary | null>(null);
   const [diaryDateSet, setDiaryDateSet] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [timelineLoading, setTimelineLoading] = useState(false);
-  const [timelinePage, setTimelinePage] = useState(0);
   const [displayName, setDisplayName] = useState("");
-  const TIMELINE_DAYS_PER_PAGE = 14;
 
   const todayStr = getTodayStr();
 
@@ -267,14 +263,6 @@ export default function Home() {
         if (cancelled) return;
         setDiaryDateSet(new Set(recent.map(d => d.date)));
 
-        // Recent diaries for timeline (last TIMELINE_DAYS_PER_PAGE days)
-        const timelineStart = df(subDays(new Date(), TIMELINE_DAYS_PER_PAGE), "yyyy-MM-dd");
-        const timelineEntries = await getDiaries(timelineStart, todayStr);
-        if (cancelled) return;
-        // Only show entries that have content or tags
-        const valid = timelineEntries.filter(d => d.content?.trim() || d.tags?.length);
-        setRecentDiaries(valid);
-
         // Last year today
         const lastYear = await getDiary(df(subYears(new Date(), 1), "yyyy-MM-dd"));
         if (cancelled) return;
@@ -287,23 +275,6 @@ export default function Home() {
 
     return () => { cancelled = true; };
   }, [user, getDiary, getDiaries, todayStr]);
-
-  // Load more timeline entries
-  const loadMoreTimeline = useCallback(async () => {
-    if (!user || timelineLoading) return;
-    setTimelineLoading(true);
-    try {
-      const nextPage = timelinePage + 1;
-      const endDate = df(subDays(new Date(), TIMELINE_DAYS_PER_PAGE * timelinePage + 1), "yyyy-MM-dd");
-      const startDate = df(subDays(new Date(), TIMELINE_DAYS_PER_PAGE * nextPage), "yyyy-MM-dd");
-      const more = await getDiaries(startDate, endDate);
-      setRecentDiaries(prev => [...prev, ...more.filter(d => d.content?.trim() || d.tags?.length)]);
-      setTimelinePage(nextPage);
-    } catch (e) {
-      console.error("Load more error:", e);
-    }
-    setTimelineLoading(false);
-  }, [user, timelineLoading, timelinePage, getDiaries]);
 
   // === Derived data ===
 
@@ -392,14 +363,9 @@ export default function Home() {
               </div>
             )}
 
-            {/* Timeline — 最近日记时间轴 */}
+            {/* Timeline — 24小时时间轴 */}
             <div className="animate-[tl-in_0.4s_ease-out_both]" style={{ animationDelay: "0.15s" }}>
-              <Timeline
-                diaries={recentDiaries}
-                loading={loading}
-                hasMore={recentDiaries.length >= TIMELINE_DAYS_PER_PAGE}
-                onLoadMore={loadMoreTimeline}
-              />
+              <Timeline todayDiary={todayDiary} />
             </div>
 
             {/* Quick write prompt when diary exists but no events */}
