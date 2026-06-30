@@ -116,17 +116,21 @@ export default function Timeline({ todayDiary }: TimelineProps) {
                     <div className="w-[10px] h-[10px] rounded-full z-10 border-2 border-dashed border-gray-300 dark:border-slate-600 bg-surface" />
                   )}
                 </div>
-                {/* 右：卡片/加号 */}
+                {/* 右：卡片（原样式） */}
                 <div className="flex-1 min-w-0 flex items-center pr-4 pl-3">
                   {hourEvents.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5 py-2">
+                    <div className="w-full py-2">
                       {hourEvents.map((ev, ei) => (
-                        <span key={`${ev.tagId}-${ei}`}
-                          onClick={(e) => { e.stopPropagation(); setSelectedTag(ev.tagName); router.push("/write"); }}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium cursor-pointer hover:opacity-80 shadow-sm bg-surface dark:bg-slate-800 border border-gray-100 dark:border-slate-700/50"
-                          style={{ color: ev.tagColor }}>
-                          #{ev.tagName}
-                        </span>
+                        <div key={`${ev.tagId}-${ei}`}
+                          onClick={() => router.push("/write")}
+                          className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 px-3.5 py-2.5 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
+                          <span
+                            onClick={(e) => { e.stopPropagation(); setSelectedTag(ev.tagName); router.push("/write"); }}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium cursor-pointer hover:opacity-80"
+                            style={{ backgroundColor: ev.tagColor + "18", color: ev.tagColor }}>
+                            #{ev.tagName}
+                          </span>
+                        </div>
                       ))}
                     </div>
                   ) : (
