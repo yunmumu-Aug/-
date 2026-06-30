@@ -1,89 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useMemo, useCallback } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTagFilter } from "@/hooks/use-tag-filter";
 import type { Diary } from "@/types";
 
-/* ================================================================
-   24 小时时间轴
-
-   从起床到入睡的时间范围，以当前小时为初始可见位置。
-   左侧：小时标记（00:00 ~ 23:00）
-   右侧：有事件 → 卡片展示，无事件 → 虚线加号框
-   ================================================================ */
-
-interface HourEvent {
-  hour: number;
-  minute: number;
-  timeLabel: string;
-  tagName: string;
-  tagColor: string;
-  tagId: string;
-}
-
-interface HourSlot {
-  hour: number;
-  events: HourEvent[];
-}
-
-/** 从日记标签中提取时间事件，按小时分组 */
-function buildHourSlots(diary: Diary | null): HourSlot[] {
-  if (!diary?.tags) return [];
-
-  const eventsByHour = new Map<number, HourEvent[]>();
-
-  for (const t of diary.tags) {
-    if (!t.time_label) continue;
-    const parts = t.time_label.split(":");
-    const h = parseInt(parts[0], 10);
-    const m = parseInt(parts[1], 10);
-    if (isNaN(h)) continue;
-
-    if (!eventsByHour.has(h)) eventsByHour.set(h, []);
-    eventsByHour.get(h)!.push({
-      hour: h,
-      minute: isNaN(m) ? 0 : m,
-      timeLabel: t.time_label,
-      tagName: t.tag?.name || "?",
-      tagColor: t.tag?.color || "#3B82F6",
-      tagId: t.tag_id,
-    });
-  }
-
-  // 有事件的小时，按分钟排序
-  for (const [, events] of eventsByHour) {
-    events.sort((a, b) => a.minute - b.minute);
-  }
-
-  // 确定时间范围：起床~入睡，如果没有则 0~23
-  let startHour = 0;
-  let endHour = 23;
-  if (diary.wake_time) {
-    const h = parseInt(diary.wake_time.split("T")[1]?.slice(0, 2), 10);
-    if (!isNaN(h)) startHour = h;
-  }
-  if (diary.sleep_time) {
-    const h = parseInt(diary.sleep_time.split("T")[1]?.slice(0, 2), 10);
-    if (!isNaN(h)) {
-      // 跨天（入睡在凌晨）
-      endHour = h < startHour ? h + 24 : h;
-    }
-  }
-
-  // 如果入睡在凌晨（跨天），加 24 标记
-  // 为了让 Timeline 显示 0~23 内的内容，如果 endHour > 23 则折回
-  const slots: HourSlot[] = [];
-  // 限制显示范围：startHour ~ min(endHour, 23)
-  const displayEnd = Math.min(endHour, 23);
-  for (let h = startHour; h <= displayEnd; h++) {
-    slots.push({
-      hour: h,
-      events: eventsByHour.get(h) || [],
-    });
-  }
-  return slots;
-}
+/**
+ * 24 小时时间轴
+ *
+ * 从起床小时到入睡小时，以当前小时为初始可见位置。
+ * 每小时一行，左侧 HH:00 标记，右侧使用原样式（圆点+连接线+白色卡片）。
+ */
 
 interface TimelineProps {
   todayDiary: Diary | null;
@@ -94,60 +21,71 @@ export default function Timeline({ todayDiary }: TimelineProps) {
   const { setSelectedTag } = useTagFilter();
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const slots = useMemo(() => buildHourSlots(todayDiary), [todayDiary]);
+  // 从日记标签提取事件
+  const events = useMemo(() => {
+    if (!todayDiary?.tags) return [];
+    const list: Array<{ hour: number; minute: number; timeLabel: string; tagName: string; tagColor: string; tagId: string }> = [];
+    for (const t of todayDiary.tags) {
+      if (!t.time_label) continue;
+      const parts = t.time_label.split(":");
+      const h = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      if (isNaN(h)) continue;
+      list.push({
+        hour: h,
+        minute: isNaN(m) ? 0 : m,
+        timeLabel: t.time_label,
+        tagName: t.tag?.name || "?",
+        tagColor: t.tag?.color || "#3B82F6",
+        tagId: t.tag_id,
+      });
+    }
+    list.sort((a, b) => a.hour - b.hour || a.minute - b.minute);
+    return list;
+  }, [todayDiary]);
 
-  // 当前小时
+  // 时间范围（起床~入睡）
+  const range = useMemo(() => {
+    let start = 0, end = 23;
+    if (todayDiary?.wake_time) {
+      const h = parseInt(todayDiary.wake_time.split("T")[1]?.slice(0, 2), 10);
+      if (!isNaN(h)) start = h;
+    }
+    if (todayDiary?.sleep_time) {
+      const h = parseInt(todayDiary.sleep_time.split("T")[1]?.slice(0, 2), 10);
+      if (!isNaN(h)) end = Math.min(h < start ? h + 24 : h, 23);
+    }
+    return { start, end };
+  }, [todayDiary]);
+
   const currentHour = useMemo(() => {
     const h = new Date().getHours();
-    // 如果当前小时在时间范围外，用 startHour
-    if (slots.length > 0) {
-      const first = slots[0].hour;
-      const last = slots[slots.length - 1].hour;
-      if (h < first) return first;
-      if (h > last) return last;
-    }
+    if (h < range.start) return range.start;
+    if (h > range.end) return range.end;
     return h;
-  }, [slots]);
+  }, [range]);
 
-  // 挂载后滚动到当前小时
   useEffect(() => {
-    if (!scrollRef.current || slots.length === 0) return;
+    if (!scrollRef.current) return;
     const el = scrollRef.current.querySelector(`[data-hour="${currentHour}"]`);
-    if (el) {
-      el.scrollIntoView({ block: "start", behavior: "auto" });
-    }
-  }, [currentHour, slots.length]);
+    if (el) el.scrollIntoView({ block: "start", behavior: "auto" });
+  }, [currentHour]);
 
-  // 点击空白加号 → 跳转写日记
-  const handleAdd = useCallback((hour: number) => {
-    router.push("/write");
-  }, [router]);
-
-  // 没有日记也没有事件 → 提示
   if (!todayDiary) {
     return (
       <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 p-6 text-center">
         <p className="text-sm text-gray-400 dark:text-slate-500 mb-3">今天还没有记录</p>
-        <button
-          onClick={() => router.push("/write")}
-          className="px-5 py-2 bg-blue-500 text-white text-sm font-semibold rounded-xl hover:bg-blue-600 transition-colors"
-        >
+        <button onClick={() => router.push("/write")}
+          className="px-5 py-2 bg-blue-500 text-white text-sm font-semibold rounded-xl hover:bg-blue-600">
           ✍️ 开始记录今天
         </button>
       </div>
     );
   }
 
-  if (slots.length === 0) {
-    return (
-      <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 p-6 text-center">
-        <p className="text-sm text-gray-400 dark:text-slate-500">还没有带时间的事件</p>
-        <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
-          试试在日记里写 "10点#起床 14点#学习"
-        </p>
-      </div>
-    );
-  }
+  // 构建小时列表
+  const hours: number[] = [];
+  for (let h = range.start; h <= range.end; h++) hours.push(h);
 
   return (
     <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50">
@@ -156,84 +94,81 @@ export default function Timeline({ todayDiary }: TimelineProps) {
       </div>
 
       <div ref={scrollRef} className="overflow-y-auto max-h-[600px] overscroll-contain">
-        {slots.map((slot, si) => {
-          const isCurrent = slot.hour === currentHour;
-          const isPast = slot.hour < currentHour;
+        <div className="py-2">
+          {hours.map((h, hi) => {
+            const isCurrent = h === currentHour;
+            const hourEvents = events.filter(e => e.hour === h);
 
-          return (
-            <div
-              key={slot.hour}
-              data-hour={slot.hour}
-              className={`flex border-b border-gray-50 dark:border-slate-700/30 last:border-b-0
-                animate-[tl-in_0.3s_ease-out_both]`}
-              style={{ animationDelay: `${si * 30}ms` }}
-            >
-              {/* 左侧：小时标记 */}
-              <div className="shrink-0 w-16 pt-4 pb-3 flex flex-col items-center">
-                <span className={`text-xs font-bold leading-none ${
-                  isCurrent
-                    ? "text-blue-500 dark:text-blue-400"
-                    : isPast
-                      ? "text-gray-400 dark:text-slate-500"
-                      : "text-gray-500 dark:text-slate-400"
-                }`}>
-                  {String(slot.hour).padStart(2, "0")}:00
-                </span>
-                {isCurrent && (
-                  <span className="mt-1 w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                )}
-              </div>
+            return (
+              <div key={h} data-hour={h} className="px-4 animate-[tl-in_0.3s_ease-out_both]"
+                style={{ animationDelay: `${hi * 30}ms` }}>
+                {/* 小时头 */}
+                <div className="flex items-center gap-2 py-2">
+                  <span className={`text-[11px] font-bold leading-none ${
+                    isCurrent ? "text-blue-500" : "text-gray-400 dark:text-slate-500"
+                  }`}>
+                    {String(h).padStart(2, "0")}:00
+                  </span>
+                  {isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
+                </div>
 
-              {/* 右侧：事件卡片 / 加号按钮 */}
-              <div className="flex-1 min-w-0 py-3 pr-4">
-                {slot.events.length > 0 ? (
-                  <div className="space-y-2">
-                    {slot.events.map((ev, ei) => (
-                      <div
-                        key={`${ev.tagId}-${ev.timeLabel}-${ei}`}
-                        className="rounded-xl px-3.5 py-2.5 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-                        style={{
-                          backgroundColor: ev.tagColor + "10",
-                          borderLeft: `3px solid ${ev.tagColor}`,
-                        }}
-                        onClick={() => router.push("/write")}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-semibold text-gray-400 dark:text-slate-500">
-                            {ev.timeLabel}
-                          </span>
-                          <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium cursor-pointer hover:opacity-80"
-                            style={{ backgroundColor: ev.tagColor + "20", color: ev.tagColor }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedTag(ev.tagName);
-                              router.push("/write");
-                            }}
-                          >
-                            #{ev.tagName}
-                          </span>
+                {/* 事件卡片（原样式） */}
+                {hourEvents.length > 0 ? (
+                  <div className="space-y-0 pb-1">
+                    {hourEvents.map((ev, ei) => {
+                      const isLastHour = hi === hours.length - 1;
+                      const isLastEvent = ei === hourEvents.length - 1;
+                      const isLast = isLastHour && isLastEvent;
+
+                      return (
+                        <div key={`${ev.tagId}-${ev.timeLabel}-${ei}`}
+                          className="flex items-stretch gap-3 cursor-pointer group"
+                          onClick={() => router.push("/write")}>
+                          {/* 原样式：圆点 + 连接线 */}
+                          <div className="flex flex-col items-center shrink-0" style={{ width: 20 }}>
+                            <div className="w-2 h-2 rounded-full mt-[18px] shrink-0" style={{ backgroundColor: ev.tagColor }} />
+                            {!isLast && <div className="w-0.5 flex-1 mt-0.5 rounded-full" style={{ backgroundColor: "#dce5f2" }} />}
+                          </div>
+                          {/* 原样式：白色卡片 */}
+                          <div className="flex-1 pb-2.5 min-w-0">
+                            <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 p-3.5 shadow-sm group-hover:shadow-md transition-shadow">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-semibold text-gray-400 dark:text-slate-500">{ev.timeLabel}</span>
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium cursor-pointer hover:opacity-80"
+                                  style={{ backgroundColor: ev.tagColor + "18", color: ev.tagColor }}
+                                  onClick={(e) => { e.stopPropagation(); setSelectedTag(ev.tagName); router.push("/write"); }}>
+                                  #{ev.tagName}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
-                  <button
-                    onClick={() => handleAdd(slot.hour)}
-                    className="w-full h-12 rounded-xl border-2 border-dashed border-gray-200 dark:border-slate-600
-                      flex items-center justify-center gap-2
-                      text-gray-300 dark:text-slate-500 hover:text-blue-400 dark:hover:text-blue-300
-                      hover:border-blue-300 dark:hover:border-blue-500
-                      transition-all duration-200 group"
-                  >
-                    <span className="text-lg font-light leading-none group-hover:scale-125 transition-transform">+</span>
-                    <span className="text-xs">{String(slot.hour).padStart(2, "0")}:00</span>
-                  </button>
+                  /* 无事件：虚框加号 */
+                  <div className="flex items-stretch gap-3 pb-2.5">
+                    <div className="flex flex-col items-center shrink-0" style={{ width: 20 }}>
+                      <div className="w-2 h-2 rounded-full mt-[18px] shrink-0 border-2 border-dashed border-gray-300 dark:border-slate-600 bg-surface" />
+                      {hi < hours.length - 1 && <div className="w-0.5 flex-1 mt-0.5 rounded-full" style={{ backgroundColor: "#dce5f2" }} />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <button onClick={() => router.push("/write")}
+                        className="w-full rounded-2xl border-2 border-dashed border-gray-200 dark:border-slate-700 p-3.5
+                          flex items-center justify-center gap-2
+                          text-gray-300 dark:text-slate-500 hover:text-blue-400 hover:border-blue-300
+                          transition-all duration-200 group">
+                        <span className="text-lg font-light leading-none group-hover:scale-125 transition-transform">+</span>
+                        <span className="text-xs">{String(h).padStart(2, "0")}:00</span>
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
