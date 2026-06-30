@@ -8,8 +8,8 @@ import type { Diary } from "@/types";
 /**
  * 24 小时时间轴
  *
- * 从起床小时到入睡小时，以当前小时为初始可见位置。
- * 每小时一行，左侧 HH:00 标记，右侧使用原样式（圆点+连接线+白色卡片）。
+ * 布局：左侧小时 | 中间圆点+连接线 | 右侧卡片
+ * 当前小时自动定位可见，无事件行显示虚框加号。
  */
 
 interface TimelineProps {
@@ -87,6 +87,14 @@ export default function Timeline({ todayDiary }: TimelineProps) {
   const hours: number[] = [];
   for (let h = range.start; h <= range.end; h++) hours.push(h);
 
+  // 扁平行列表，用于连接线判断
+  type Row = { hour: number; type: "event" } & (typeof events)[0] | { hour: number; type: "empty" };
+  const rows: Row[] = hours.flatMap(h => {
+    const evs = events.filter(e => e.hour === h);
+    if (evs.length > 0) return evs.map(e => ({ ...e, type: "event" as const }));
+    return [{ hour: h, type: "empty" as const }] as Row[];
+  });
+
   return (
     <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50">
       <div className="sticky top-0 z-10 px-4 pt-4 pb-2 bg-surface dark:bg-slate-800 border-b border-gray-100 dark:border-slate-700/50">
@@ -100,66 +108,64 @@ export default function Timeline({ todayDiary }: TimelineProps) {
             const hourEvents = events.filter(e => e.hour === h);
 
             return (
-              <div key={h} data-hour={h} className="px-4 animate-[tl-in_0.3s_ease-out_both]"
+              <div key={h} data-hour={h} className="animate-[tl-in_0.3s_ease-out_both]"
                 style={{ animationDelay: `${hi * 30}ms` }}>
-                {/* 小时头 */}
-                <div className="flex items-center gap-2 py-2">
-                  <span className={`text-[11px] font-bold leading-none ${
-                    isCurrent ? "text-blue-500" : "text-gray-400 dark:text-slate-500"
-                  }`}>
-                    {String(h).padStart(2, "0")}:00
-                  </span>
-                  {isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
-                </div>
-
-                {/* 事件卡片（原样式） */}
+                {/* 事件 */}
                 {hourEvents.length > 0 ? (
-                  <div className="space-y-0 pb-1">
-                    {hourEvents.map((ev, ei) => {
-                      const isLastHour = hi === hours.length - 1;
-                      const isLastEvent = ei === hourEvents.length - 1;
-                      const isLast = isLastHour && isLastEvent;
+                  hourEvents.map((ev, ei) => {
+                    const ri = rows.findIndex(r => r.type === "event" && (r as any).timeLabel === ev.timeLabel && (r as any).tagId === ev.tagId);
+                    const isLast = ri === rows.length - 1;
 
-                      return (
-                        <div key={`${ev.tagId}-${ev.timeLabel}-${ei}`}
-                          className="flex items-stretch gap-3 cursor-pointer group"
-                          onClick={() => router.push("/write")}>
-                          {/* 原样式：圆点 + 连接线 */}
-                          <div className="flex flex-col items-center shrink-0" style={{ width: 20 }}>
-                            <div className="w-2 h-2 rounded-full mt-[18px] shrink-0" style={{ backgroundColor: ev.tagColor }} />
-                            {!isLast && <div className="w-0.5 flex-1 mt-0.5 rounded-full" style={{ backgroundColor: "#dce5f2" }} />}
-                          </div>
-                          {/* 原样式：白色卡片 */}
-                          <div className="flex-1 pb-2.5 min-w-0">
-                            <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 p-3.5 shadow-sm group-hover:shadow-md transition-shadow">
-                              <div className="flex items-center gap-2">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium cursor-pointer hover:opacity-80"
-                                  style={{ backgroundColor: ev.tagColor + "18", color: ev.tagColor }}
-                                  onClick={(e) => { e.stopPropagation(); setSelectedTag(ev.tagName); router.push("/write"); }}>
-                                  #{ev.tagName}
-                                </span>
-                              </div>
-                            </div>
+                    return (
+                      <div key={`${ev.tagId}-${ev.timeLabel}-${ei}`}
+                        className="flex items-stretch cursor-pointer group min-h-[56px]"
+                        onClick={() => router.push("/write")}>
+                        {/* 左：小时 */}
+                        <div className="shrink-0 w-14 flex flex-col items-center justify-start pt-4">
+                          <span className={`text-[11px] font-bold leading-none ${
+                            isCurrent ? "text-blue-500" : "text-gray-400 dark:text-slate-500"
+                          }`}>
+                            {String(h).padStart(2, "0")}:00
+                          </span>
+                          {isCurrent && <span className="mt-1 w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
+                        </div>
+                        {/* 中：圆点 + 连接线 */}
+                        <div className="flex flex-col items-center shrink-0 pt-4" style={{ width: 20 }}>
+                          <div className="w-[10px] h-[10px] rounded-full shrink-0" style={{ backgroundColor: ev.tagColor }} />
+                          {!isLast && <div className="w-0.5 flex-1" style={{ backgroundColor: "#dce5f2" }} />}
+                        </div>
+                        {/* 右：卡片 */}
+                        <div className="flex-1 min-w-0 pb-2.5 pr-4 pl-1">
+                          <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 p-3.5 shadow-sm group-hover:shadow-md transition-shadow mt-2.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium cursor-pointer hover:opacity-80"
+                              style={{ backgroundColor: ev.tagColor + "18", color: ev.tagColor }}
+                              onClick={(e) => { e.stopPropagation(); setSelectedTag(ev.tagName); router.push("/write"); }}>
+                              #{ev.tagName}
+                            </span>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    );
+                  })
                 ) : (
-                  /* 无事件：虚框加号 */
-                  <div className="flex items-stretch gap-3 pb-2.5">
-                    <div className="flex flex-col items-center shrink-0" style={{ width: 20 }}>
-                      <div className="w-2 h-2 rounded-full mt-[18px] shrink-0 border-2 border-dashed border-gray-300 dark:border-slate-600 bg-surface" />
-                      {hi < hours.length - 1 && <div className="w-0.5 flex-1 mt-0.5 rounded-full" style={{ backgroundColor: "#dce5f2" }} />}
+                  /* 无事件 */
+                  <div className="flex items-stretch min-h-[56px]">
+                    <div className="shrink-0 w-14 flex flex-col items-center justify-start pt-4">
+                      <span className="text-[11px] font-bold leading-none text-gray-400 dark:text-slate-500">
+                        {String(h).padStart(2, "0")}:00
+                      </span>
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex flex-col items-center shrink-0 pt-4" style={{ width: 20 }}>
+                      <div className="w-[10px] h-[10px] rounded-full shrink-0 border-2 border-dashed border-gray-300 dark:border-slate-600 bg-surface" />
+                      {hi < hours.length - 1 && <div className="w-0.5 flex-1" style={{ backgroundColor: "#dce5f2" }} />}
+                    </div>
+                    <div className="flex-1 min-w-0 pb-2.5 pr-4 pl-1">
                       <button onClick={() => router.push("/write")}
-                        className="w-full rounded-2xl border-2 border-dashed border-gray-200 dark:border-slate-700 p-3.5
+                        className="w-full rounded-2xl border-2 border-dashed border-gray-200 dark:border-slate-700 p-3.5 mt-2.5
                           flex items-center justify-center gap-2
                           text-gray-300 dark:text-slate-500 hover:text-blue-400 hover:border-blue-300
                           transition-all duration-200 group">
                         <span className="text-lg font-light leading-none group-hover:scale-125 transition-transform">+</span>
-                        <span className="text-xs">{String(h).padStart(2, "0")}:00</span>
                       </button>
                     </div>
                   </div>
