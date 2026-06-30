@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useTagFilter } from "@/hooks/use-tag-filter";
 import { useDiary } from "@/hooks/use-diary";
 import { supabase } from "@/lib/supabase";
 import {
-  format as df, subDays, subYears, isSameDay, parseISO,
+  format as df, subDays, subYears,
 } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import type { Diary } from "@/types";
+import Timeline from "@/components/dashboard/timeline";
 
 /* ================================================================
    Helpers
@@ -76,18 +77,6 @@ function formatTime(iso: string | null): string {
 }
 
 /* ================================================================
-   Timeline Event type
-   ================================================================ */
-
-interface TimelineEvent {
-  time: string;
-  label: string;
-  color: string;
-  timeLabel: string;
-  diaryId: string;
-}
-
-/* ================================================================
    Sub-components
    ================================================================ */
 
@@ -129,7 +118,7 @@ function HeroCard({
   lastYearDiary: Diary | null;
 }) {
   return (
-    <div className="relative overflow-hidden shadow-[0_16px_36px_rgba(215,220,235,0.35)] dark:shadow-[0_16px_36px_rgba(0,0,0,0.3)]"
+    <div className="relative overflow-hidden rounded-[26px] shadow-[0_16px_36px_rgba(215,220,235,0.35)] dark:shadow-[0_16px_36px_rgba(0,0,0,0.3)]"
       style={{ backgroundColor: "#edf3fd" }}>
       {/* Subtle watermark */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
@@ -190,37 +179,6 @@ function QuickEntry({ onClick }: { onClick: () => void }) {
   );
 }
 
-/** Timeline — 当日时间轴 */
-function TimelineBlock({ events }: { events: TimelineEvent[] }) {
-  if (events.length === 0) return null;
-  return (
-    <div className="space-y-0">
-      {events.map((ev, i) => (
-        <div key={`${ev.diaryId}-${ev.timeLabel}-${i}`} className="flex items-stretch gap-3 animate-[tl-in_0.3s_ease-out_both]"
-          style={{ animationDelay: `${i * 60}ms`, transformOrigin: "top" }}>
-          {/* Time dot + line */}
-          <div className="flex flex-col items-center shrink-0" style={{ width: 20 }}>
-            <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: ev.color }} />
-            {i < events.length - 1 && <div className="w-0.5 flex-1 mt-0.5 rounded-full" style={{ backgroundColor: "#dce5f2" }} />}
-          </div>
-          {/* Content card */}
-          <div className="flex-1 mb-2.5">
-            <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 p-3.5 shadow-sm">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-semibold text-gray-400 dark:text-slate-500">{ev.time}</span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
-                  style={{ backgroundColor: ev.color + "18", color: ev.color }}>
-                  {ev.label}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /** TodaySummary — 今日总结底部栏 */
 function TodaySummary({
   eventCount,
@@ -268,10 +226,14 @@ export default function Home() {
   const { selectedTag, setSelectedTag } = useTagFilter();
 
   const [todayDiary, setTodayDiary] = useState<Diary | null>(null);
+  const [recentDiaries, setRecentDiaries] = useState<Diary[]>([]);
   const [lastYearDiary, setLastYearDiary] = useState<Diary | null>(null);
   const [diaryDateSet, setDiaryDateSet] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [timelinePage, setTimelinePage] = useState(0);
   const [displayName, setDisplayName] = useState("");
+  const TIMELINE_DAYS_PER_PAGE = 14;
 
   const todayStr = getTodayStr();
 
@@ -305,6 +267,14 @@ export default function Home() {
         if (cancelled) return;
         setDiaryDateSet(new Set(recent.map(d => d.date)));
 
+        // Recent diaries for timeline (last TIMELINE_DAYS_PER_PAGE days)
+        const timelineStart = df(subDays(new Date(), TIMELINE_DAYS_PER_PAGE), "yyyy-MM-dd");
+        const timelineEntries = await getDiaries(timelineStart, todayStr);
+        if (cancelled) return;
+        // Only show entries that have content or tags
+        const valid = timelineEntries.filter(d => d.content?.trim() || d.tags?.length);
+        setRecentDiaries(valid);
+
         // Last year today
         const lastYear = await getDiary(df(subYears(new Date(), 1), "yyyy-MM-dd"));
         if (cancelled) return;
@@ -318,6 +288,23 @@ export default function Home() {
     return () => { cancelled = true; };
   }, [user, getDiary, getDiaries, todayStr]);
 
+  // Load more timeline entries
+  const loadMoreTimeline = useCallback(async () => {
+    if (!user || timelineLoading) return;
+    setTimelineLoading(true);
+    try {
+      const nextPage = timelinePage + 1;
+      const endDate = df(subDays(new Date(), TIMELINE_DAYS_PER_PAGE * timelinePage + 1), "yyyy-MM-dd");
+      const startDate = df(subDays(new Date(), TIMELINE_DAYS_PER_PAGE * nextPage), "yyyy-MM-dd");
+      const more = await getDiaries(startDate, endDate);
+      setRecentDiaries(prev => [...prev, ...more.filter(d => d.content?.trim() || d.tags?.length)]);
+      setTimelinePage(nextPage);
+    } catch (e) {
+      console.error("Load more error:", e);
+    }
+    setTimelineLoading(false);
+  }, [user, timelineLoading, timelinePage, getDiaries]);
+
   // === Derived data ===
 
   const streak = useMemo(() => calcCurrentStreak(diaryDateSet), [diaryDateSet]);
@@ -327,25 +314,7 @@ export default function Home() {
     return calcAwakeHours(todayDiary.wake_time).total;
   }, [todayDiary]);
 
-  const timelineEvents = useMemo((): TimelineEvent[] => {
-    if (!todayDiary?.tags) return [];
-    const events: TimelineEvent[] = [];
-    for (const t of todayDiary.tags) {
-      if (t.time_label) {
-        events.push({
-          time: t.time_label,
-          label: t.tag?.name || "?",
-          color: t.tag?.color || "#3B82F6",
-          timeLabel: t.time_label,
-          diaryId: todayDiary.id,
-        });
-      }
-    }
-    events.sort((a, b) => a.timeLabel.localeCompare(b.timeLabel));
-    return events;
-  }, [todayDiary]);
-
-  const eventCount = timelineEvents.length;
+  const eventCount = todayDiary?.tags?.filter(t => t.time_label).length || 0;
   const tagCount = todayDiary?.tags?.length || 0;
   const wordCount = todayDiary?.content?.length || 0;
 
@@ -423,20 +392,18 @@ export default function Home() {
               </div>
             )}
 
-            {/* Timeline */}
-            {timelineEvents.length > 0 && (
-              <div className="animate-[tl-in_0.4s_ease-out_both]" style={{ animationDelay: "0.15s" }}>
-                <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 p-4">
-                  <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">
-                    🕐 今天时间线
-                  </h3>
-                  <TimelineBlock events={timelineEvents} />
-                </div>
-              </div>
-            )}
+            {/* Timeline — 最近日记时间轴 */}
+            <div className="animate-[tl-in_0.4s_ease-out_both]" style={{ animationDelay: "0.15s" }}>
+              <Timeline
+                diaries={recentDiaries}
+                loading={loading}
+                hasMore={recentDiaries.length >= TIMELINE_DAYS_PER_PAGE}
+                onLoadMore={loadMoreTimeline}
+              />
+            </div>
 
             {/* Quick write prompt when diary exists but no events */}
-            {todayDiary && timelineEvents.length === 0 && (
+            {todayDiary && eventCount === 0 && (
               <div className="animate-[tl-in_0.4s_ease-out_both]" style={{ animationDelay: "0.15s" }}>
                 <button onClick={() => router.push("/write")}
                   className="w-full flex items-center gap-3 px-5 py-4 rounded-2xl bg-surface dark:bg-slate-800 border border-dashed border-gray-200 dark:border-slate-700
