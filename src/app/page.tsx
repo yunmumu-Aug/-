@@ -94,8 +94,8 @@ interface TimelineEvent {
 /** Header — sticky top bar inside the page content */
 function DashboardHeader({ displayName, dateStr }: { displayName: string; dateStr: string }) {
   return (
-    <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 md:-mx-0 px-4 sm:px-6 md:px-0 py-3
-      bg-surface dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700">
+    <div className="sticky top-0 z-20 px-4 sm:px-6 md:px-0 py-3
+      bg-surface dark:bg-slate-900">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-gray-800 dark:text-slate-100">
@@ -234,7 +234,7 @@ function TodaySummary({
   wordCount: number;
 }) {
   return (
-    <div className="fixed bottom-14 md:bottom-0 left-0 right-0 md:left-56 z-20 px-4 pb-3 pt-0 pointer-events-none">
+    <div className="fixed bottom-14 md:bottom-0 left-0 right-0 z-20 px-4 pb-3 pt-0 pointer-events-none">
       <div className="max-w-5xl mx-auto pointer-events-auto">
         <div
           className="rounded-2xl px-5 py-3.5 shadow-[0_-4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.2)]
@@ -360,7 +360,7 @@ export default function Home() {
   if (authLoading || !user) return null;
 
   return (
-    <div className="w-full max-w-5xl mx-auto">
+    <div className="w-full px-4 sm:px-6 md:px-8 max-w-5xl">
       {/* ---- Smooth scroll for animations ---- */}
       <style>{`
         @keyframes tl-in {
@@ -404,7 +404,7 @@ export default function Home() {
             {/* Hero Card — fade in */}
             <div className="animate-[tl-in_0.4s_ease-out_both]">
               <div style={{ background: "linear-gradient(180deg, #ffffff 0%, #ffffff 38%, #f6f8fd 55%, #f0f3fb 100%)" }}
-                className="rounded-[26px] p-0.5 -mx-4 sm:-mx-6 md:mx-0">
+                className="rounded-[26px] p-0.5">
                 <div className="px-3 pt-4 pb-3">
                   <HeroCard
                     awakeLabel={awakeLabel}

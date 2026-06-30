@@ -42,7 +42,7 @@ export default function Sidebar() {
   const { theme, toggle } = useTheme();
 
   return (
-    <aside className="hidden md:flex md:flex-col md:w-56 md:fixed md:inset-y-0 md:border-r md:border-gray-200 md:dark:border-slate-700 md:bg-surface dark:md:bg-slate-900 md:z-30">
+    <aside className="hidden md:flex md:flex-col md:w-56 md:shrink-0 md:min-h-screen md:border-r md:border-gray-200 md:dark:border-slate-700 md:bg-surface dark:md:bg-slate-900">
       {/* Logo */}
       <Link href="/" className="flex items-center h-16 px-5 border-b border-gray-200 dark:border-slate-700 shrink-0">
         <span className="text-xl font-bold text-gray-800 dark:text-slate-100">⏳ 时光轴</span>
