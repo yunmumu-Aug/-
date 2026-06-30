@@ -133,7 +133,6 @@ export default function Timeline({ todayDiary }: TimelineProps) {
                           <div className="flex-1 pb-2.5 min-w-0">
                             <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/50 p-3.5 shadow-sm group-hover:shadow-md transition-shadow">
                               <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-semibold text-gray-400 dark:text-slate-500">{ev.timeLabel}</span>
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium cursor-pointer hover:opacity-80"
                                   style={{ backgroundColor: ev.tagColor + "18", color: ev.tagColor }}
                                   onClick={(e) => { e.stopPropagation(); setSelectedTag(ev.tagName); router.push("/write"); }}>
