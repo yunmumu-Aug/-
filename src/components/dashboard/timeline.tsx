@@ -58,8 +58,16 @@ export default function Timeline({ todayDiary }: TimelineProps) {
 
   useEffect(() => {
     if (!scrollRef.current) return;
-    const el = scrollRef.current.querySelector(`[data-hour="${currentHour}"]`);
-    if (el) el.scrollIntoView({ block: "start", behavior: "auto" });
+    // 延迟确保动画完成后滚动到位
+    const timer = setTimeout(() => {
+      if (!scrollRef.current) return;
+      const el = scrollRef.current.querySelector(`[data-hour="${currentHour}"]`) as HTMLElement | null;
+      if (el) {
+        const offset = el.offsetTop - scrollRef.current.offsetTop;
+        scrollRef.current.scrollTop = offset;
+      }
+    }, 100);
+    return () => clearTimeout(timer);
   }, [currentHour]);
 
   if (!todayDiary) {
