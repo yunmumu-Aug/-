@@ -59,7 +59,7 @@ export default function Timeline({ todayDiary }: TimelineProps) {
   useEffect(() => {
     if (!scrollRef.current) return;
     const el = scrollRef.current.querySelector(`[data-hour="${currentHour}"]`);
-    if (el) el.scrollIntoView({ block: "start", behavior: "auto" });
+    if (el) el.scrollIntoView({ block: "center", behavior: "auto" });
   }, [currentHour]);
 
   if (!todayDiary) {
