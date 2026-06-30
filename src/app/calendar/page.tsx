@@ -425,7 +425,7 @@ export default function CalendarPage() {
                         <span key={t.id}
                           className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs cursor-pointer hover:opacity-80"
                           style={{ backgroundColor: (t.tag?.color || "#3B82F6") + "20", color: t.tag?.color || "#3B82F6" }}
-                          onClick={() => { setSelectedTag(t.tag?.name || null); router.push("/"); }}>
+                          onClick={() => { setSelectedTag(t.tag?.name || null); router.push("/write"); }}>
                           #{t.tag?.name || "?"} {t.time_label && <span className="opacity-60">{t.time_label}</span>}
                         </span>
                       ))}
@@ -435,13 +435,13 @@ export default function CalendarPage() {
                     {(previewDiary.content || "").slice(0, 400)}
                     {(previewDiary.content || "").length > 400 ? "..." : ""}
                   </p>
-                  <button onClick={() => router.push("/")}
+                  <button onClick={() => router.push("/write")}
                     className="w-full pt-2 mt-2 text-sm font-semibold text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors border-t border-gray-100 dark:border-slate-700">编辑日记</button>
                 </div>
               ) : (
                 <div className="mt-4 text-sm text-gray-400 dark:text-slate-500">
                   <p>📭 这天还没写日记</p>
-                  <button onClick={() => router.push("/")}
+                  <button onClick={() => router.push("/write")}
                     className="mt-2 px-4 py-1.5 bg-blue-500 dark:bg-blue-600 text-white text-xs font-semibold rounded-xl hover:bg-blue-600 active:scale-[0.98] transition-all shadow-sm shadow-blue-500/20 inline-block">去写日记 →</button>
                 </div>
               )}

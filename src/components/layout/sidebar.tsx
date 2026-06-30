@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
 
 const navItems = [
-  { label: "写日记", href: "/", icon: "edit" },
+  { label: "写日记", href: "/write", icon: "edit" },
   { label: "日历", href: "/calendar", icon: "calendar" },
   { label: "图表", href: "/charts", icon: "chart" },
   { label: "标签", href: "/tags", icon: "tag" },

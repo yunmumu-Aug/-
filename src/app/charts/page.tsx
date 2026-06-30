@@ -61,7 +61,7 @@ function HorizontalBar({ data }: { data: TagStat[] }) {
       {top.length === 0 && <p className="text-sm text-gray-400 dark:text-slate-500">暂无数据</p>}
       {top.map((s, i) => (
         <div key={s.tagId} className="flex items-center gap-2 text-sm cursor-pointer hover:opacity-80"
-          onClick={() => { setSelectedTag(s.tagName); router.push("/"); }}>
+          onClick={() => { setSelectedTag(s.tagName); router.push("/write"); }}>
           <span className="w-4 text-right text-xs text-gray-400 dark:text-slate-500">{i + 1}</span>
           <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} />
           <span className="w-22 truncate">{s.tagName}</span>
@@ -169,7 +169,7 @@ function PieBlock({ title, data }: { title: string; data: { name: string; value:
     const textAnchor = isRight ? "start" : "end";
     const d = data[index];
     if (!d || percent < 0.03) return null;
-    return (<g style={{ cursor: "pointer" }} onClick={() => { setSelectedTag(d.name); router.push("/"); }}>
+    return (<g style={{ cursor: "pointer" }} onClick={() => { setSelectedTag(d.name); router.push("/write"); }}>
       <line x1={sx} y1={sy} x2={x} y2={y} stroke={d.color} strokeWidth={1.2} strokeOpacity={0.5} />
       <line x1={x} y1={y} x2={ex} y2={y} stroke={d.color} strokeWidth={1.2} strokeOpacity={0.5} />
       <text x={textX} y={y} textAnchor={textAnchor} fill={d.color} fontSize={12} fontWeight={600} dominantBaseline="central">

@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 const navItems = [
-  { label: "写日记", href: "/", icon: "edit" },
+  { label: "写日记", href: "/write", icon: "edit" },
   { label: "日历", href: "/calendar", icon: "calendar" },
   { label: "图表", href: "/charts", icon: "chart" },
   { label: "设置", href: "/settings", icon: "settings" },

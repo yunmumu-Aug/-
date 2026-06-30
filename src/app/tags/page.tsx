@@ -517,7 +517,7 @@ export default function TagsPage() {
               const count = tagUsage.get(tag.id) || 0;
               return (
               <div key={tag.id} className="flex items-center gap-2 text-sm cursor-pointer hover:opacity-80"
-                onClick={() => { setSelectedTag(tag.name); router.push("/"); }}>
+                onClick={() => { setSelectedTag(tag.name); router.push("/write"); }}>
                 <span className={`w-5 text-right text-xs font-bold shrink-0 ${i < 3 ? "text-blue-500" : "text-gray-400 dark:text-slate-500"}`}>
                   {i + 1}
                 </span>
@@ -555,7 +555,7 @@ export default function TagsPage() {
                 key={tag.id}
                 className="flex items-center justify-between p-3 bg-surface dark:bg-slate-800 border border-gray-200 dark:border-slate-700
                   rounded-lg hover:shadow-sm transition-shadow cursor-pointer"
-                onClick={() => { setSelectedTag(tag.name); router.push("/"); }}
+                onClick={() => { setSelectedTag(tag.name); router.push("/write"); }}
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <span
