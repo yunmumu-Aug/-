@@ -83,10 +83,9 @@ export default function Timeline({ todayDiary }: TimelineProps) {
         <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500">🕐 今天时间轴</h3>
       </div>
 
-      <div ref={scrollRef} className="overflow-y-auto max-h-[600px] overscroll-contain">
-        <div className="py-1 relative">
+      <div ref={scrollRef} className="py-1 relative">
           {/* 连续连接线 */}
-          <div className="absolute left-[66px] top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-slate-700" />
+          <div className="absolute left-[61px] top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-slate-700" />
 
           {hours.map((h, hi) => {
             const isCurrent = h === currentHour;
@@ -104,16 +103,16 @@ export default function Timeline({ todayDiary }: TimelineProps) {
                   </span>
                   {isCurrent && <span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
                 </div>
-                {/* 中：圆点（绝对定位线之上） */}
-                <div className="shrink-0 w-3 flex items-center justify-center relative">
+                {/* 中：圆点（连续线之上） */}
+                <div className="shrink-0 w-3 flex items-center justify-center">
                   {hourEvents.length > 0 ? (
                     hourEvents.map((ev, ei) => (
                       <div key={ei}
-                        className="w-[10px] h-[10px] rounded-full z-10 absolute"
-                        style={{ backgroundColor: ev.tagColor, top: "50%", transform: "translateY(-50%)" }} />
+                        className="w-[10px] h-[10px] rounded-full shrink-0 z-10"
+                        style={{ backgroundColor: ev.tagColor }} />
                     ))
                   ) : (
-                    <div className="w-[10px] h-[10px] rounded-full z-10 border-2 border-dashed border-gray-300 dark:border-slate-600 bg-surface" />
+                    <div className="w-[10px] h-[10px] rounded-full shrink-0 z-10 border-2 border-dashed border-gray-300 dark:border-slate-600 bg-surface" />
                   )}
                 </div>
                 {/* 右：卡片（原样式） */}
@@ -148,6 +147,5 @@ export default function Timeline({ todayDiary }: TimelineProps) {
           })}
         </div>
       </div>
-    </div>
   );
 }
